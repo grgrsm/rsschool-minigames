@@ -1,0 +1,1 @@
+A web library of minigames built in Typescript, HTML&CSS
