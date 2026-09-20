@@ -1,0 +1,17 @@
+.section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1);
+  font-size: var(--font-headline-medium);
+  font-weight: var(--font-weight-extra-bold);
+  color: var(--color-on-primary);
+  margin-bottom: var(--size-2);
+}
+
+.section-eyebrow__bar {
+  display: inline-block;
+  width: 4px;
+  height: 1em;
+  border-radius: var(--corner-extra-small);
+  background-color: var(--color-primary);
+}

@@ -1,0 +1,309 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+.auth-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: 420px;
+  width: calc(100% - var(--size-4));
+  max-height: calc(100vh - var(--size-4));
+
+  // <dialog> is overflow:auto by default — that would clip the hard shadow.
+  overflow: visible;
+
+  &::backdrop {
+    background-color: rgb(30 27 58 / 65%);
+    backdrop-filter: blur(2px);
+  }
+
+  &[open] {
+    animation: auth-dialog-in var(--transition-base) ease;
+  }
+}
+
+@keyframes auth-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Card: tabs on top, the active form below.
+.auth-dialog__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  background-color: var(--color-bg);
+  border: 3px solid var(--color-on-primary);
+  border-radius: var(--corner-extra-large);
+  padding: var(--size-4);
+  max-height: calc(100vh - var(--size-4));
+  overflow-y: auto;
+  box-shadow: var(--shadow-modal);
+
+  @include mobile {
+    padding: var(--size-4);
+  }
+}
+
+.auth-dialog__tabs {
+  display: flex;
+  flex-shrink: 0;
+  height: var(--size-6);
+  overflow: hidden; // active tab is clipped by the rounded container
+  background-color: var(--color-white);
+  border: 2.5px solid var(--color-on-primary);
+  border-radius: var(--corner-medium);
+}
+
+.auth-dialog__tab {
+  flex: 1;
+  font-size: var(--font-body-medium);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+
+  &.is-active {
+    background-color: var(--color-bg-footer-low);
+    color: var(--color-white);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-tertiary);
+    outline-offset: -4px;
+  }
+}
+
+.auth-dialog__panels {
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------------
+// Form
+// ---------------------------------------------------------------------
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+
+  // display:flex above would otherwise beat the [hidden] attribute.
+  &[hidden] {
+    display: none;
+  }
+}
+
+.auth-form__title {
+  font-size: var(--font-headline-medium);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  margin-bottom: calc(var(--size-1) * -1); // title → subtitle gap = 8px
+}
+
+.auth-form__subtitle {
+  font-size: var(--font-body-small);
+  color: var(--color-on-bg);
+  margin-bottom: var(--size-1); // subtitle → first field gap = 24px
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+}
+
+.auth-field__label {
+  font-size: var(--font-body-small);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+}
+
+.auth-field__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  height: var(--size-6);
+  padding-inline: var(--size-2);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-small);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+
+  &:focus-within {
+    border-color: var(--color-tertiary);
+    box-shadow: 0 0 0 3px var(--color-secondary);
+  }
+
+  &.is-error {
+    border-color: var(--color-error);
+  }
+}
+
+.auth-field__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-on-bg);
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.auth-field__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--font-body-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-on-primary);
+
+  &::placeholder {
+    color: var(--color-on-bg);
+  }
+}
+
+.auth-field__toggle {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--color-on-bg);
+  cursor: pointer;
+
+  @include focus-ring;
+}
+
+.auth-field__error {
+  font-size: var(--font-label-medium);
+  color: var(--color-error);
+
+  &:empty {
+    display: none; // don't reserve space, keeps the 16px rhythm from the design
+  }
+}
+
+.auth-forgot-link {
+  align-self: flex-end;
+  font-size: var(--font-body-small);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  text-decoration: underline;
+
+  @include focus-ring;
+}
+
+.auth-form__form-error {
+  font-size: var(--font-label-medium);
+  color: var(--color-error);
+  text-align: center;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.auth-submit-btn {
+  @include button-primary;
+
+  width: 100%;
+  min-height: 52px;
+  margin-top: var(--size-1); // fields → button gap = 24px
+  padding: var(--size-2) var(--size-4);
+  font-size: var(--font-body-medium);
+  border: 2.5px solid var(--color-on-primary);
+  border-radius: var(--corner-medium);
+  box-shadow: 0 4px 0 var(--color-on-primary);
+
+  &:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--color-on-primary);
+  }
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  font-size: var(--font-label-medium);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  color: var(--color-on-bg);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-on-primary);
+    opacity: 0.2;
+  }
+}
+
+.auth-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-2);
+  width: 100%;
+  min-height: 50px;
+  padding: var(--size-2) var(--size-4);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--corner-medium);
+  font-size: var(--font-body-medium);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+
+  &:hover {
+    background-color: var(--color-surface);
+  }
+
+  @include focus-ring;
+}
+
+.auth-google-btn__icon {
+  display: inline-flex;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.auth-switch-text {
+  margin-top: var(--size-1); // Google button → footer text gap = 24px
+  text-align: center;
+  font-size: var(--font-body-small);
+  color: var(--color-on-bg);
+}
+
+.auth-link-btn {
+  display: inline;
+  font-size: var(--font-body-small);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  text-decoration: underline;
+  cursor: pointer;
+
+  @include focus-ring;
+}

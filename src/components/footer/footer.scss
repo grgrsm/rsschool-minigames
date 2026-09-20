@@ -1,0 +1,204 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+.footer {
+  background-color: var(--color-bg-footer);
+  color: var(--color-on-bg-footer);
+  margin-top: var(--size-6);
+}
+
+.footer__container {
+  @include container;
+
+  padding-block: var(--size-5);
+}
+
+.footer__top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--size-4);
+  padding-bottom: var(--size-4);
+
+  @include tablet-down {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--size-4);
+  }
+}
+
+.footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+  max-width: 400px;
+  @include tablet-down {
+    max-width: 688px;
+  }
+}
+
+.footer__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1);
+  font-size: var(--font-headline-small);
+  font-weight: var(--font-weight-extra-bold);
+  color: var(--color-white);
+
+  @include focus-ring;
+}
+
+.footer__logo-icon {
+  display: inline-block;
+  border-radius: var(--corner-small);
+}
+
+
+.footer__tagline {
+  max-width: 400px;
+  font-size: var(--font-body-small);
+  color: var(--color-on-bg-footer);
+  line-height: 1.6;
+
+   @include tablet-down {
+      max-width: 688px;
+  }
+}
+
+.footer__links {
+  display: flex;
+  gap: var(--size-6);
+
+  @include tablet-down {
+    display: flex;
+    flex-direction: row;
+    gap: var(--size-5);
+  }
+
+  @include mobile {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--size-4) var(--size-3);
+
+    .footer__column:last-child {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.footer__column-title {
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+  margin-bottom: var(--size-2);
+}
+
+.footer__column-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+}
+
+.footer__link {
+  font-size: var(--font-body-small);
+  color: var(--color-on-bg-footer);
+  transition: color var(--transition-fast);
+  &:hover {
+    color: var(--color-primary);
+      text-decoration: underline;
+
+  }
+
+  @include focus-ring;
+}
+
+.footer__socials {
+  display: flex;
+  gap: var(--size-1);
+
+  @include tablet-down {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+.footer__social-link {
+  @include button-icon;
+
+  background-color: var(--color-bg-footer-low);
+  border-color: var(--color-bg-footer-lowest);
+  color: var(--color-white);
+
+  &:hover {
+    border-color: var(--color-primary); 
+  }
+
+  &:hover:not(:disabled) {
+      background-color: var( --color-bg-footer-low);
+  }
+}
+
+.footer__bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--size-3);
+  padding-top: var(--size-3);
+  border-top: 1px solid var(--color-bg-footer-low);
+  font-size: var(--font-label-medium);
+  color: var(--color-on-bg-footer);
+
+  p:last-child {
+    margin-inline-start: auto;
+  }
+
+  // 768: всё в одну линию, отменяем прижатие вправо для ровного ряда и верного выравнивания
+  @include tablet-down {
+    gap: var(--size-3);
+    justify-content: flex-start;
+    align-items: center;
+
+    p:last-child {
+      margin-inline-start: 0;
+    }
+  }
+
+  // 375: копирайт отдельной строкой, «Designed with love» скрыт
+  @include mobile {
+    p:first-child {
+      flex-basis: 100%;
+    }
+
+    p:last-child {
+      display: none;
+    }
+  }
+}
+
+.footer__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-05);
+  padding: var(--size-05) var(--size-2);
+  border-radius: var(--corner-full);
+  color: var(--color-on-bg-footer);
+
+  // на макетах бейдж без внутренних отступов, иконка стоит вровень с копирайтом
+  @include tablet-down {
+    padding-inline: 0;
+  }
+}
+
+.footer__badge-icon {
+  display: inline-block;
+}
+
+.footer__student {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-05);
+  color: var(--color-on-bg-footer);
+}
+
+.footer__student-icon {
+  display: inline-flex;
+  color: var(--color-on-bg-footer);
+}

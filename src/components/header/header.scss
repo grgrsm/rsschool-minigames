@@ -1,0 +1,199 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  width: 100%;
+  background-color: var(--color-bg);
+  border-bottom: 2px solid var(--color-on-primary);
+}
+
+.header__container {
+  @include container(var(--size-10)); // 80px from the viewport edges
+
+  display: flex;
+  align-items: center;
+  gap: var(--size-4);
+  padding-block: var(--size-3);
+
+  @include tablet-down {
+    padding-block: var(--size-2);
+  }
+}
+
+.header__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1);
+  font-size: var(--font-headline-medium);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.21;
+  color: var(--color-on-primary);
+  flex-shrink: 0;
+
+  @include focus-ring;
+}
+
+.header__logo-icon {
+  // logo.png already carries its own 2px navy frame — no radius/outline here.
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.header__nav {
+  margin-inline-start: auto; // nav sits next to the buttons, on the right
+
+  @include tablet-down {
+    display: none;
+  }
+}
+
+.header__nav-list {
+  display: flex;
+  align-items: center;
+  gap: var(--size-5);
+}
+
+.header__nav-link {
+  font-size: var(--font-body-medium);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.21;
+  color: var(--color-on-bg);
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-on-primary);
+  }
+
+  &--active {
+    color: var(--color-on-primary);
+    font-weight: var(--font-weight-bold);
+  }
+
+  @include focus-ring;
+}
+
+.header__auth-slot {
+  display: flex;
+  align-items: center;
+
+  @include tablet-down {
+    margin-inline-start: auto; // nav is hidden here, push buttons right
+  }
+}
+
+.header__auth {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
+.header__auth--desktop {
+  @include tablet-down {
+    display: none;
+  }
+}
+
+.header__auth--tablet {
+  display: none;
+
+  @include tablet {
+    display: flex;
+  }
+}
+
+.header__btn {
+  @include button-white;
+
+  border-radius: var(--corner-medium);
+   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-1);
+  border-radius: var(--corner-medium);
+  outline: 2px solid var(--color-on-primary);
+  outline-offset: -2px;
+  border: none;
+  box-shadow: 0 10px 20px -10px rgb(0 0 0 / 10%);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+
+  &:hover {
+    background: var(--color-primary-high);
+  }
+}
+
+.header__btn--primary {
+  @include button-primary;
+
+  border-radius: var(--corner-medium);
+
+}
+
+.header__user {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1);
+  color: var(--color-on-primary);
+}
+
+.header__user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-5);
+  height: var(--size-5);
+  border-radius: var(--corner-full);
+  background-color: var(--color-secondary);
+  color: var(--color-tertiary);
+  font-size: var(--font-label-medium);
+  font-weight: var(--font-weight-bold);
+}
+
+.header__user-name {
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-medium);
+}
+
+.header__burger {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 2px; // bars are 2px thick → 4px pitch, as in the mockup
+  width: 32px;
+  height: 32px;
+  padding: var(--size-1);
+  background-color: var(--color-white);
+  border-radius: var(--corner-small);
+
+  // Inset outline, same as the header buttons.
+  outline: 2px solid var(--color-on-primary);
+  outline-offset: -2px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+
+  &:hover {
+    background-color: var(--color-surface);
+  }
+
+  &:focus-visible {
+    outline-color: var(--color-tertiary);
+    box-shadow: 0 0 0 3px var(--color-secondary);
+  }
+
+  @include tablet-down {
+    display: inline-flex;
+  }
+}
+
+.header__burger-bar {
+  align-self: stretch;
+  height: 2px;
+  background-color: var(--color-on-primary);
+}

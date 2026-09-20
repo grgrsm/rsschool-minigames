@@ -1,0 +1,211 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+.leaderboard-wrapper {
+  @include section-container;
+
+  padding-top: var(--size-6);
+}
+
+.leaderboard__scroll-area {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 2.5px solid var(--color-on-primary);
+  box-shadow: 6px 6px 0 var(--color-on-primary);
+}
+
+.leaderboard {
+  width: 100%;
+  background-color: var(--color-white);
+  border-collapse: collapse;
+}
+
+.leaderboard__label-short {
+  display: none;
+}
+
+@include mobile {
+  .leaderboard__label-full {
+    display: none;
+  }
+
+  .leaderboard__label-short {
+    display: inline;
+  }
+
+  .leaderboard__col--favorite {
+    display: none;
+  }
+}
+
+@include small-mobile {
+  .leaderboard__col--games {
+    display: none;
+  }
+}
+
+.leaderboard thead tr {
+  background-color: var(--color-tertiary);
+}
+
+.leaderboard th {
+  padding: 24px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: var(--font-weight-extra-bold);
+  color: var(--color-white);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1.5px solid var(--color-on-primary);
+
+  @include mobile {
+    padding: var(--size-2) var(--size-1);
+    font-size: var(--font-label-small);
+  }
+}
+
+.leaderboard__row {
+  background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-outline);
+
+  &:nth-child(even) {
+    background-color: var(--color-bg);
+  }
+
+  &:hover {
+    background-color: var(--color-surface);
+  }
+}
+
+.leaderboard__cell {
+  padding: 16px 24px;
+  font-size: 16px;
+  white-space: nowrap;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  text-align: center;
+  vertical-align: middle;
+
+  @include mobile {
+    padding: var(--size-2) var(--size-1);
+    font-size: var(--font-label-large);
+  }
+
+  @include small-mobile {
+    font-size: var(--font-label-medium);
+  }
+}
+
+.leaderboard__cell--rank {
+  width: 80px;
+  font-weight: var(--font-weight-extra-bold);
+  color: var(--color-on-primary);
+}
+
+.leaderboard__rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-4);
+  padding-inline: var(--size-1);
+  font-size: 16px;
+  font-weight: var(--font-weight-extra-bold);
+  color: var(--color-on-primary);
+
+  &--top {
+    color: var(--color-gold-accent);
+  }
+}
+
+.leaderboard__cell--player {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  text-align: left;
+}
+
+.leaderboard__player-name {
+  color: var(--color-on-primary);
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+
+  @include small-mobile {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.leaderboard__avatar {
+  display: inline-flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-on-primary);
+  color: var(--color-on-primary);
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+
+  &--1 {
+    background-color: var(--color-primary);
+  }
+
+  &--2 {
+    background-color: var(--color-avatar-2);
+  }
+
+  &--3 {
+    background-color: var(--color-avatar-3);
+  }
+
+  &--4 {
+    background-color: var(--color-avatar-4);
+  }
+
+  &--5 {
+    background-color: var(--color-avatar-5);
+  }
+}
+
+.leaderboard__cell--games {
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+}
+
+.leaderboard__cell--score {
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+}
+
+.leaderboard__streak {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-05);
+  color: var(--color-on-primary);
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+}
+
+.leaderboard__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-on-primary);
+  color: var(--color-on-primary);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+}

@@ -1,0 +1,26 @@
+{
+  "name": "minigames-home-page",
+  "version": "1.0.0",
+  "description": "MiniGames platform — responsive Home Page SPA built with TypeScript, SCSS and Vite (RS School task).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,scss,html,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,scss,html,json}\""
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "sass": "^1.77.8",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}

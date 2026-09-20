@@ -1,0 +1,175 @@
+@use 'sass:color';
+@use './breakpoints' as *;
+
+/// Horizontal page gutter shared by every block (header, hero, sections, footer).
+///   Desktop (≥ 1025px): `$gutter` — 80px for the header, 120px for sections
+///   Tablet + mobile (≤ 1024px, incl. 768px): 40px
+///   Small mobile (≤ 480px, incl. 375px): 16px
+/// There is no max-width: the gutter is measured from the viewport edge.
+@mixin container($gutter: var(--size-15)) {
+  width: 100%;
+  padding-inline: $gutter;
+
+  @include tablet-down {
+    padding-inline: var(--size-5);
+  }
+
+  @include small-mobile {
+    padding-inline: var(--size-2);
+  }
+}
+
+/// Every section outside the header uses the 120px desktop gutter.
+@mixin section-container {
+  @include container(var(--size-15));
+}
+
+/// Visible keyboard focus ring — never remove outline without replacing it.
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-tertiary);
+    outline-offset: 2px;
+  }
+}
+
+/// Hide visually while keeping content accessible to screen readers.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/// Filled, primary CTA button (Sign Up / Play Now / etc.)
+@mixin button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-1);
+  font-family: var(--font-primary);
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  background-color: var(--color-primary);
+  border: none;
+  border-radius: var(--corner-full);
+  padding: var(--size-1) var(--size-3);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-high);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    background-color: var(--color-outline-variant);
+    color: var(--color-on-bg-low);
+    cursor: not-allowed;
+  }
+
+  @include focus-ring;
+}
+
+/// Outlined / ghost button (Log In / Log Out / secondary actions) — used on
+/// dark surfaces (burger menu drawer).
+@mixin button-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-1);
+  font-family: var(--font-primary);
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+  background-color: transparent;
+  border: 1px solid var(--color-white);
+  border-radius: var(--corner-full);
+  padding: var(--size-1) var(--size-3);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    background-color: rgb(255 255 255 / 12%);
+  }
+
+  @include focus-ring;
+}
+
+/// White, bordered button (Log In on the light header) per UI Kit.
+@mixin button-white {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-1);
+  font-family: var(--font-primary);
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  background-color: var(--color-white);
+  border: 1.5px solid var(--color-on-primary);
+  border-radius: var(--corner-full);
+  padding: var(--size-1) var(--size-3);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-surface);
+  }
+
+  @include focus-ring;
+}
+
+/// Round icon-only button (carousel arrows, burger, close ✕)
+@mixin button-icon($size: var(--size-6)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $size;
+  height: $size;
+  padding: var(--btn-icon-padding);
+  border-radius: var(--corner-full);
+  border: 1px solid var(--color-outline);
+  background-color: var(--color-white);
+  color: var(--color-on-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    opacity var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-surface);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @include focus-ring;
+}
+
+/// Card surface (game cards, dev-section card, dialog)
+@mixin surface-card {
+  background-color: var(--color-white);
+  border-radius: var(--corner-large);
+  border: 1px solid var(--color-outline);
+}
+
+/// Single-line text truncation with ellipsis.
+@mixin line-clamp($lines: 1) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
