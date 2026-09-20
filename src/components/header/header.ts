@@ -1,7 +1,6 @@
 import type { SessionState } from '@/types/auth';
 import { sessionStore } from '@/state/session-store';
 import { el } from '@/utils/dom';
-import { icons } from '@/utils/icons';
 
 import { NAV_ITEMS } from './nav-links';
 
