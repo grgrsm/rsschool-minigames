@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main # или master
+      - main # Укажите название вашей основной ветки (main или master)
 
 permissions:
   contents: read
@@ -16,20 +16,22 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug file tree
+        run: |
+          pwd
+          ls -la
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          
+          node-version: 22
+
       - name: Install dependencies
         run: npm ci
 
