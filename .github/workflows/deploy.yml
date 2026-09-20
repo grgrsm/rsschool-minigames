@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main # Укажите master, если ваша основная ветка master
+      - main # Замените на master, если ваша ветка master
 
 permissions:
   contents: read
@@ -20,7 +20,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,7 +28,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm' # Теперь заработает, так как package-lock.json в корне
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
