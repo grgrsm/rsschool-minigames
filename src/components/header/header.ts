@@ -1,14 +1,20 @@
-import type { SessionState } from '@/types/auth';
+import type { SessionState, AuthTab } from '@/types/auth';
 import { sessionStore } from '@/state/session-store';
 import { el } from '@/utils/dom';
 
 import { NAV_ITEMS } from './nav-links';
 
 export interface HeaderCallbacks {
-  onLoginClick: () => void;
-  onSignUpClick: () => void;
+  onAuthClick: (tab: AuthTab) => void;
   onLogOutClick: () => void;
   onBurgerClick: () => void;
+}
+
+function getPublicUrl(path: string): string {
+  const base = import.meta.env.BASE_URL;
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  return `${cleanBase}${cleanPath}`;
 }
 
 function renderUserBadge(fullName: string, initials: string): HTMLElement {
@@ -32,8 +38,11 @@ function renderDesktopAuthArea(state: SessionState, callbacks: HeaderCallbacks):
       attrs: { type: 'button' },
       text: 'Sign Up',
     });
-    loginBtn.addEventListener('click', callbacks.onLoginClick);
-    signUpBtn.addEventListener('click', callbacks.onSignUpClick);
+
+    // Вызываем одну и ту же модалку, но с разными аргументами:
+    loginBtn.addEventListener('click', () => callbacks.onAuthClick('login'));
+    signUpBtn.addEventListener('click', () => callbacks.onAuthClick('register'));
+
     wrapper.append(loginBtn, signUpBtn);
   } else {
     const logOutBtn = el('button', {
@@ -57,7 +66,7 @@ function renderTabletAuthArea(state: SessionState, callbacks: HeaderCallbacks): 
       attrs: { type: 'button' },
       text: 'Sign Up',
     });
-    signUpBtn.addEventListener('click', callbacks.onSignUpClick);
+    signUpBtn.addEventListener('click', () => callbacks.onAuthClick('register'));
     wrapper.append(signUpBtn);
   } else {
     const logOutBtn = el('button', {
@@ -79,7 +88,7 @@ export function createHeader(callbacks: HeaderCallbacks): HTMLElement {
   const logo = el('a', { className: 'header__logo', attrs: { href: '#home' } }, [
     el('img', {
       className: 'header__logo-icon',
-      attrs: { src: 'assets/images/logo.png', alt: '', width: 32, height: 32 },
+      attrs: { src: getPublicUrl('assets/images/logo.png'), alt: '', width: 32, height: 32 },
     }),
     el('span', { className: 'header__logo-text', text: 'MiniGames' }),
   ]);
@@ -103,7 +112,7 @@ export function createHeader(callbacks: HeaderCallbacks): HTMLElement {
   const authSlot = el('div', { className: 'header__auth-slot' });
 
   const burgerBar = (): HTMLSpanElement =>
-  el('span', { className: 'header__burger-bar', attrs: { 'aria-hidden': true } });
+    el('span', { className: 'header__burger-bar', attrs: { 'aria-hidden': true } });
 
   const burgerBtn = el(
     'button',

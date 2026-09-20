@@ -2,7 +2,6 @@ import './styles/main.scss';
 
 import type { GamesResponse } from '@/types/game';
 import type { LeaderboardResponse } from '@/types/leaderboard';
-import { createAuthChooserDialog } from '@/components/auth-dialog/auth-chooser-dialog';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createDevSection } from '@/components/dev-section/dev-section';
@@ -29,23 +28,14 @@ function mountApp(): void {
 
   const authDialog = createAuthDialog();
 
-  // "Sign Up" no longer opens the Register form directly — it first opens a
-  // small chooser modal (Email vs Google), which then opens the Auth Dialog
-  // on the Register tab. "Log In" still opens the Auth Dialog directly.
-  const authChooser = createAuthChooserDialog({
-    onContinueWithEmail: () => authDialog.open('register'),
-    onLoginInstead: () => authDialog.open('login'),
-  });
-
   const burgerMenu = createBurgerMenu({
     onLoginClick: () => authDialog.open('login'),
-    onSignUpClick: () => authChooser.open(),
+    onSignUpClick: () => authDialog.open('register'),
     onLogOutClick: () => sessionStore.logOut(),
   });
 
   const header = createHeader({
-    onLoginClick: () => authDialog.open('login'),
-    onSignUpClick: () => authChooser.open(),
+    onAuthClick: (tab) => authDialog.open(tab), // Открывает модалку с переданной вкладкой ('login' или 'register')
     onLogOutClick: () => sessionStore.logOut(),
     onBurgerClick: () => burgerMenu.open(),
   });
