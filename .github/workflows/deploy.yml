@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main # Укажите название вашей основной ветки (main или master)
+      - story-1 # Триггер запуска при пуше в story-1
 
 permissions:
   contents: read
@@ -21,11 +21,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Debug file tree
-        run: |
-          pwd
-          ls -la
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
