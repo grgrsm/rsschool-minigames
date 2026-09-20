@@ -9,14 +9,15 @@
 
 .leaderboard__scroll-area {
   overflow-x: auto;
-  border-radius: var(--corner-large);
-  border: 2px solid var(--color-on-primary);
-  box-shadow: var(--shadow-level-2);
+  border-radius: 16px;
+  border: 2.5px solid var(--color-on-primary);
+  box-shadow: 6px 6px 0 var(--color-on-primary);
 }
 
 .leaderboard {
   width: 100%;
   background-color: var(--color-white);
+  border-collapse: collapse;
 }
 
 .leaderboard__label-short {
@@ -48,13 +49,14 @@
 }
 
 .leaderboard th {
-  padding: var(--size-2) var(--size-3);
-  text-align: left;
-  font-size: var(--font-label-medium);
-  font-weight: var(--font-weight-bold);
+  padding: 24px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: var(--font-weight-extra-bold);
   color: var(--color-white);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  border-bottom: 1.5px solid var(--color-on-primary);
 
   @include mobile {
     padding: var(--size-2) var(--size-1);
@@ -64,6 +66,7 @@
 
 .leaderboard__row {
   background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-outline);
 
   &:nth-child(even) {
     background-color: var(--color-bg);
@@ -75,10 +78,12 @@
 }
 
 .leaderboard__cell {
-  padding: var(--size-3);
-  font-size: var(--font-body-small);
-  color: var(--color-on-primary);
+  padding: 16px 24px;
+  font-size: 16px;
   white-space: nowrap;
+  color: var(--color-on-primary);
+  text-align: center;
+  vertical-align: middle;
 
   @include mobile {
     padding: var(--size-2) var(--size-1);
@@ -91,7 +96,9 @@
 }
 
 .leaderboard__cell--rank {
-  font-weight: var(--font-weight-bold);
+  width: 80px;
+  font-weight: var(--font-weight-extra-bold);
+  color: var(--color-on-primary);
 }
 
 .leaderboard__rank-badge {
@@ -100,8 +107,9 @@
   justify-content: center;
   min-width: var(--size-4);
   padding-inline: var(--size-1);
-  color: var(--color-on-primary);
+  font-size: 16px;
   font-weight: var(--font-weight-extra-bold);
+  color: var(--color-on-primary);
 
   &--top {
     color: var(--color-gold-accent);
@@ -111,12 +119,19 @@
 .leaderboard__cell--player {
   display: flex;
   align-items: center;
-  gap: var(--size-1);
+  justify-content: flex-start;
+  gap: 12px;
+  font-size: 16px;
   font-weight: var(--font-weight-bold);
   color: var(--color-on-primary);
+  text-align: left;
 }
 
 .leaderboard__player-name {
+  color: var(--color-on-primary);
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+
   @include small-mobile {
     max-width: 90px;
     overflow: hidden;
@@ -127,14 +142,15 @@
 
 .leaderboard__avatar {
   display: inline-flex;
+  flex: 0 0 40px;
   align-items: center;
   justify-content: center;
-  width: var(--size-4);
-  height: var(--size-4);
-  border-radius: var(--corner-full);
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
   border: 1.5px solid var(--color-on-primary);
   color: var(--color-on-primary);
-  font-size: var(--font-label-medium);
+  font-size: 14px;
   font-weight: var(--font-weight-bold);
 
   &--1 {
@@ -158,25 +174,37 @@
   }
 }
 
-.leaderboard__cell--score {
+.leaderboard__cell--games {
+  font-size: 16px;
   font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+}
+
+.leaderboard__cell--score {
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
 }
 
 .leaderboard__streak {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--size-05);
   color: var(--color-on-primary);
-  font-weight: var(--font-weight-medium);
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
 }
 
 .leaderboard__badge {
   display: inline-flex;
-  padding: var(--size-05) var(--size-2);
-  border-radius: var(--corner-full);
-  background-color: transparent;
-  border: 1.5px solid var(--color-gold-accent);
-  color: var(--color-gold-accent);
-  font-size: var(--font-label-medium);
-  font-weight: var(--font-weight-medium);
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-on-primary);
+  color: var(--color-on-primary);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
 }
