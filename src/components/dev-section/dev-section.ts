@@ -6,7 +6,7 @@ export function createDevSection(): HTMLElement {
   const illustration = el('div', { className: 'dev-section__illustration' }, [
     el('img', {
       className: 'dev-section__illustration-image',
-      attrs: { src: '/assets/images/dev-illustration.png', alt: '', loading: 'lazy' },
+      attrs: { src: 'assets/images/dev-illustration.png', alt: '', loading: 'lazy' },
     }),
   ]);
 
@@ -19,7 +19,7 @@ export function createDevSection(): HTMLElement {
     el('button', { className: 'dev-section__cta', attrs: { type: 'button' } }, [
       el('span', { className: 'dev-section__cta-icon' }, [
         el('img', {
-          attrs: { src: '/assets/icons/upload.png', alt: '', width: 24, height: 24 },
+          attrs: { src: 'assets/icons/upload.png', alt: '', width: 24, height: 24 },
         }),
       ]),
       el('span', { className: 'dev-section__cta-text', text: 'Submit Form' }),

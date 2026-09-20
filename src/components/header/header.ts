@@ -79,7 +79,7 @@ export function createHeader(callbacks: HeaderCallbacks): HTMLElement {
   const logo = el('a', { className: 'header__logo', attrs: { href: '#home' } }, [
     el('img', {
       className: 'header__logo-icon',
-      attrs: { src: '/assets/images/logo.png', alt: '', width: 32, height: 32 },
+      attrs: { src: 'assets/images/logo.png', alt: '', width: 32, height: 32 },
     }),
     el('span', { className: 'header__logo-text', text: 'MiniGames' }),
   ]);

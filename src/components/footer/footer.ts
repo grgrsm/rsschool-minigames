@@ -31,7 +31,7 @@ export function createFooter(): HTMLElement {
     el('a', { className: 'footer__logo', attrs: { href: '#home' } }, [
       el('img', {
         className: 'footer__logo-icon',
-        attrs: { src: '/assets/images/logo.png', alt: '', width: 28, height: 28 },
+        attrs: { src: 'assets/images/logo.png', alt: '', width: 28, height: 28 },
       }),
       el('span', { text: 'MiniGames' }),
     ]),
@@ -74,7 +74,7 @@ export function createFooter(): HTMLElement {
     el('img', {
       className: 'footer__badge-icon',
       attrs: {
-        src: '/assets/images/rs-logo.png',
+        src: 'assets/images/rs-logo.png',
         alt: '',
         width: 14,
         height: 14,
@@ -96,7 +96,7 @@ export function createFooter(): HTMLElement {
  el('img', {
       className: 'footer__badge-icon',
       attrs: {
-        src: '/assets/images/student-icon.png',
+        src: 'assets/images/student-icon.png',
         alt: '',
         width: 14,
         height: 14,

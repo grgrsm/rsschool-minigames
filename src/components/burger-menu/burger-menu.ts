@@ -64,7 +64,7 @@ export function createBurgerMenu(callbacks: BurgerMenuCallbacks): BurgerMenuApi 
     el('a', { className: 'burger-menu__logo', attrs: { href: '#home' } }, [
       el('img', {
         className: 'burger-menu__logo-icon',
-        attrs: { src: '/assets/images/logo.png', alt: '', width: 28, height: 28 },
+        attrs: { src: 'assets/images/logo.png', alt: '', width: 28, height: 28 },
       }),
       el('span', { text: 'MiniGames' }),
     ]),
