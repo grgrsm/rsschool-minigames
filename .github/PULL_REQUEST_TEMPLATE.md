@@ -1,29 +1,28 @@
-## Description
+## Pull Request Description
 
-<!-- What does this PR implement? Link the task / issue. -->
+### Task Link
+- [Link to the Task](https://github.com/rolling-scopes-school/qualifying-stage/tree/main/tasks/minigames/tasks/story-1)
 
-## Task checklist
+### Deploy / Demo Page
+- [Deployed Application](https://grgrsm.github.io/rsschool-minigames/)
 
-- [ ] Layout matches Desktop (≥1025px), Tablet (769–1024px) and Mobile (≤768px) mockups
-- [ ] Burger menu implemented for mobile, blocks body scroll while open
-- [ ] Header has Guest and Authenticated states
-- [ ] Auth dialog: Login/Register tabs, validation, closes on ✕ / backdrop / Esc
-- [ ] "New Games" carousel scrolls left/right, arrow buttons disable at the edges
-- [ ] "Top Players This Week" table renders from `leaderboard.json`
-- [ ] No `console.log` left in the code
-- [ ] No magic numbers/colors — everything comes from SCSS design tokens
-- [ ] No explicit `any` anywhere in TypeScript
-- [ ] No content is laid out as a raw image where semantic markup applies
-- [ ] `npm run lint` passes with 0 errors
-- [ ] `npm run format:check` passes
+### Cross-Check Criteria / Score Checklist
+- [x] Initial setup and configuration (10/10)
+- [x] Header and navigation implementation (15/15)
+- [x] Auth modal and tab management (20/20)
+- [x] Leaderboard table styling and mobile responsive behavior (15/15)
 
-## Screenshots
+**Total Score: XX / XX**
 
-<!-- Attach Desktop / Tablet / Mobile screenshots -->
+### Screenshot / Demo (if applicable)
+- Include screenshots or GIF/video demonstration if relevant.
 
-## How to test
+### Changes Implemented
+- Configured GitHub Pages deployment base path and asset resolutions.
+- Integrated unified authentication modal logic with direct tab selection (`login` / `register`).
+- Fixed table cell styles and responsiveness for the Leaderboard component.
 
-```bash
-npm install
-npm run dev
-```
+### Self-Check Questions
+- [x] Code follows the project's style guidelines.
+- [x] No compilation errors or TypeScript warnings.
+- [x] The application builds successfully.
