@@ -1,0 +1,169 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+.new-games-wrapper {
+  @include section-container;
+
+  padding-top: var(--size-6);
+}
+
+.new-games__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--size-2);
+}
+
+.new-games__arrows {
+  display: flex;
+  gap: var(--size-1);
+}
+
+.new-games__arrow {
+  @include button-icon;
+
+  border: 2px solid var(--color-on-primary);
+  color: var(--color-on-primary);
+  cursor: default;
+
+  &:hover {
+    background-color: var(--color-white);
+  }
+}
+
+.new-games__arrow--primary {
+  background-color: var(--color-primary);
+  
+  &:hover {
+    background-color: var(--color-primary);
+  }
+}
+
+.new-games__strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-3);
+  overflow: hidden;
+
+  // The strip never scrolls or wraps at any breakpoint — only the card
+  // sizes below change. The "peek" look on the side cards comes from
+  // object-fit: cover cropping a wider source image into a narrow frame,
+  // not from clipping the layout itself.
+  @include mobile {
+    gap: var(--size-2);
+  }
+
+  @include small-mobile {
+    gap: var(--size-1);
+  }
+}
+
+.feature-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 220px;
+  height: 384px;
+  border-radius: var(--corner-large);
+  border: 2px solid var(--color-on-primary);
+  overflow: hidden;
+  transition: width var(--transition-base);
+
+  &--center {
+    width: 816px;
+  }
+
+  @include tablet {
+    width: 200px;
+    height: 300px;
+
+    &--center {
+      width: 420px;
+    }
+  }
+
+  @include mobile {
+    width: 110px;
+    height: 320px;
+
+    &--center {
+      width: 450px;
+    }
+  }
+
+  @include small-mobile {
+    width: 54px;
+    height: 230px;
+
+    &--center {
+      width: 230px;
+    }
+  }
+}
+
+.feature-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.feature-card__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(0 0 0 / 70%), rgb(0 0 0 / 0%) 55%);
+}
+
+.feature-card__content {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: var(--size-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+}
+
+.feature-card__title {
+  font-size: var(--font-body-medium);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+
+  @include line-clamp(1);
+}
+
+.feature-card--center .feature-card__title {
+  font-size: var(--font-headline-medium);
+
+  @include mobile {
+    font-size: var(--font-body-large);
+  }
+}
+
+.feature-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  font-size: var(--font-label-medium);
+  color: var(--color-white);
+}
+
+.feature-card__rating,
+.feature-card__likes {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-05);
+}
+
+.feature-card__rating .feature-card__icon {
+  color: var(--color-primary);
+}
+
+.feature-card__likes .feature-card__icon {
+  color: var(--color-lite);
+}
+
+.feature-card__icon {
+  display: inline-flex;
+}

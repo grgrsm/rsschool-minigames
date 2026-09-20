@@ -1,0 +1,56 @@
+// =========================================================================
+// Breakpoints
+//   Mobile:  ≤ 768px
+//   Tablet:  769px – 1024px
+//   Desktop: ≥ 1025px
+// =========================================================================
+
+$breakpoint-mobile-max: 768px;
+$breakpoint-small-mobile-max: 480px;
+$breakpoint-tablet-min: 769px;
+$breakpoint-tablet-max: 1024px;
+$breakpoint-desktop-min: 1025px;
+
+/// Styles that apply on mobile only (≤ 768px)
+@mixin mobile {
+  @media (max-width: $breakpoint-mobile-max) {
+    @content;
+  }
+}
+
+/// Narrower slice of mobile (≤ 480px) — small phones, nested inside
+/// `mobile`. Used where a third, tighter tier is needed (e.g. hiding an
+/// extra table column).
+@mixin small-mobile {
+  @media (max-width: $breakpoint-small-mobile-max) {
+    @content;
+  }
+}
+
+/// Styles that apply on tablet only (769px – 1024px)
+@mixin tablet {
+  @media (min-width: $breakpoint-tablet-min) and (max-width: $breakpoint-tablet-max) {
+    @content;
+  }
+}
+
+/// Styles that apply on tablet AND mobile (≤ 1024px)
+@mixin tablet-down {
+  @media (max-width: $breakpoint-tablet-max) {
+    @content;
+  }
+}
+
+/// Styles that apply on desktop only (≥ 1025px)
+@mixin desktop {
+  @media (min-width: $breakpoint-desktop-min) {
+    @content;
+  }
+}
+
+/// Styles that apply on tablet AND desktop (≥ 769px)
+@mixin tablet-up {
+  @media (min-width: $breakpoint-tablet-min) {
+    @content;
+  }
+}

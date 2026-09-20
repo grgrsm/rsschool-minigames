@@ -1,0 +1,28 @@
+@use 'sass:math';
+
+// Design tokens must be first — components rely on the CSS custom properties.
+@use 'tokens';
+
+@use 'breakpoints' as *;
+@use 'mixins' as *;
+
+@use 'reset';
+@use 'typography';
+@use 'section-eyebrow';
+
+@use '../components/header/header';
+@use '../components/burger-menu/burger-menu';
+@use '../components/hero/hero';
+@use '../components/new-games/new-games';
+@use '../components/leaderboard/leaderboard';
+@use '../components/dev-section/dev-section';
+@use '../components/footer/footer';
+@use '../components/auth-dialog/auth-dialog';
+
+.no-scroll {
+  overflow: hidden;
+}
+
+main {
+  display: block;
+}

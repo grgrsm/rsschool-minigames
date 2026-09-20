@@ -1,0 +1,66 @@
+@use './breakpoints' as *;
+@use './mixins' as *;
+
+.text-display-large {
+  font-size: var(--font-display-large);
+  font-weight: var(--font-weight-extra-bold);
+  line-height: 1.15;
+
+  @include tablet {
+    font-size: var(--font-display-medium);
+  }
+
+  @include mobile {
+    font-size: var(--font-display-small);
+  }
+}
+
+.text-headline-large {
+  font-size: var(--font-headline-large);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.25;
+
+  @include mobile {
+    font-size: var(--font-headline-medium);
+  }
+}
+
+.text-headline-medium {
+  font-size: var(--font-headline-medium);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+}
+
+.text-headline-small {
+  font-size: var(--font-headline-small);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+}
+
+.text-body-large {
+  font-size: var(--font-body-large);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.6;
+}
+
+.text-body-medium {
+  font-size: var(--font-body-medium);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.6;
+}
+
+.text-body-small {
+  font-size: var(--font-body-small);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
+}
+
+.text-label-large {
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-medium);
+}
+
+.text-label-medium {
+  font-size: var(--font-label-medium);
+  font-weight: var(--font-weight-medium);
+}

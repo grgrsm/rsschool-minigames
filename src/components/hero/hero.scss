@@ -1,0 +1,172 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+// Three layouts from the mockup:
+//   ≥ 1025px  — 1920 frame: 112px vertical padding, 640px card
+//   ≤ 1024px  — 768 frame:   72px vertical padding, 480px card
+//   ≤ 480px   — 375 frame:   64px vertical padding, full-width card
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  margin-inline-start: calc(50% - 50vw);
+  overflow: hidden;
+  display: flex;
+}
+
+.hero__illustration {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgb(30 27 58 / 65%), rgb(30 27 58 / 65%)),
+    url('/assets/images/hero-section.webp');
+  background-size: cover;
+  background-position: center 65%;
+  background-color: var(--color-bg-footer);
+}
+
+.hero__inner {
+  @include section-container;
+
+  display: flex;
+  align-items: center;
+  padding-block: var(--size-14); // 112px
+
+  @include tablet-down {
+    padding-block: var(--size-9); // 72px
+  }
+
+  @include small-mobile {
+    padding-block: var(--size-8); // 64px
+  }
+}
+
+.hero__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-3);
+  width: 640px;
+  max-width: 100%;
+  padding: var(--size-6);
+  background-color: var(--color-bg);
+  border-radius: var(--corner-extra-large);
+
+  // Inset outline (like the mockup) keeps the inner width exactly 640 − 2 × 48.
+  outline: 3px solid var(--color-on-primary);
+  outline-offset: -3px;
+  box-shadow: var(--shadow-level-3); // 8px 8px
+
+  @include tablet-down {
+    width: 480px;
+    padding: var(--size-3);
+    gap: var(--size-2);
+    border-radius: var(--corner-large);
+    outline-width: 2.5px;
+    outline-offset: -2.5px;
+    box-shadow: var(--shadow-level-2); // 6px 6px
+  }
+
+  @include small-mobile {
+    width: 100%;
+    border-radius: var(--corner-medium);
+    outline-width: 2px;
+    outline-offset: -2px;
+    box-shadow: var(--shadow-level-1); // 4px 4px
+  }
+}
+
+.hero__title {
+  align-self: stretch;
+  font-size: var(--font-display-large); // 56px
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  color: var(--color-on-primary);
+
+  @include tablet-down {
+    font-size: var(--font-display-medium); // 36px
+    line-height: 1.15;
+  }
+
+  @include small-mobile {
+    font-size: var(--font-display-small); // 24px
+    line-height: 1.2;
+  }
+}
+
+.hero__description {
+  align-self: stretch;
+  font-size: var(--font-body-large); // 18px
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  color: var(--color-on-bg);
+
+  @include tablet-down {
+    font-size: var(--font-body-small); // 14px
+    line-height: 1.4;
+  }
+
+  @include small-mobile {
+    font-size: var(--font-label-medium); // 12px
+  }
+}
+
+.hero__description-short {
+  display: none;
+}
+
+@include small-mobile {
+  .hero__description-full {
+    display: none;
+  }
+
+  .hero__description-short {
+    display: inline;
+  }
+}
+
+.hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+
+  padding: var(--size-2) var(--size-3); // 16px 24px
+  font-size: var(--font-body-large); // 18px
+  font-weight: var(--font-weight-bold);
+  line-height: 1.21;
+
+  color: var(--color-on-primary);
+  background-color: var(--color-primary);
+  border-radius: var(--corner-small);
+
+  outline: 2px solid var(--color-on-primary);
+  outline-offset: -2px;
+
+  transition: background-color var(--transition-fast);
+
+  &:hover {
+    background-color: var(--color-primary-high);
+  }
+
+  &:focus-visible {
+    outline-color: var(--color-tertiary);
+    box-shadow: 0 0 0 3px var(--color-secondary);
+  }
+
+  // 1024px и меньше
+  @include tablet-down {
+    padding: 10px 20px;
+    font-size: 14px;
+    line-height: normal;
+  }
+
+  // 480px и меньше
+  @include small-mobile {
+    padding: 8px 16px;
+    font-size: 12px;
+    line-height: normal;
+  }
+}
