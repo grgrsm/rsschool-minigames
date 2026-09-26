@@ -1,19 +1,6 @@
 @use '../../styles/breakpoints' as *;
 @use '../../styles/mixins' as *;
 
-.carousel-wrapper {
-  @include container;
-
-  padding-top: var(--size-6);
-}
-
-.carousel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--size-2);
-}
-
 .carousel__arrows {
   display: flex;
   gap: var(--size-1);
@@ -21,103 +8,142 @@
 
 .carousel__arrow {
   @include button-icon;
+
+  border: 2px solid var(--color-on-primary);
+  color: var(--color-on-primary);
+
+  &:hover {
+    background-color: var(--color-white);
+  }
 }
 
-.carousel__arrow:first-child svg {
-  color: inherit;
+.carousel__arrow--primary {
+  background-color: var(--color-primary);
+
+  &:hover {
+    background-color: var(--color-primary-high);
+  }
 }
 
 .carousel__viewport {
+  position: relative;
   overflow: hidden;
+  width: 100%;
+  // Height is set inline per breakpoint by carousel.ts (it's derived from
+  // the same size table that drives card width, so there's a single source
+  // of truth instead of a duplicated height here).
 }
 
 .carousel__track {
-  display: flex;
-  gap: var(--size-3);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding-bottom: var(--size-1);
-
-  // Hide scrollbar visually; scrolling remains fully functional via arrows,
-  // trackpad, touch and keyboard.
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.carousel__item {
-  scroll-snap-align: start;
-  flex: 0 0 auto;
-  width: 220px;
-
-  @include mobile {
-    width: 168px;
-  }
-}
-
-.game-card {
-  @include surface-card;
-
-  overflow: hidden;
-  height: 100%;
-  transition: box-shadow var(--transition-fast);
-
-  &:hover {
-    box-shadow: var(--shadow-level-1);
-  }
-}
-
-.game-card__image {
+  position: relative;
   width: 100%;
-  height: 140px;
-  object-fit: cover;
+  height: 100%;
+  list-style: none;
+  touch-action: pan-y;
+  cursor: grab;
 
-  @include mobile {
-    height: 110px;
+  &--dragging {
+    cursor: grabbing;
+
+    .carousel__card {
+      transition: none;
+    }
   }
 }
 
-.game-card__body {
+.carousel__card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 100%;
+  border-radius: var(--corner-large);
+  border: 2px solid var(--color-on-primary);
+  overflow: hidden;
+  background-color: var(--color-secondary);
+  transition:
+    width var(--transition-base),
+    transform var(--transition-base);
+
+  // Width/transform are written inline by carousel.ts on every frame of a
+  // drag and on every step — they're the one thing this component can't
+  // precompute per breakpoint, since they're continuous functions of the
+  // card's live distance from the centered slot.
+}
+
+.carousel__card-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.carousel__card-scrim,
+.carousel__card-content {
+  display: none;
+}
+
+.carousel__card--has-info {
+  .carousel__card-scrim,
+  .carousel__card-content {
+    display: block;
+  }
+}
+
+.carousel__card-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(0 0 0 / 70%), rgb(0 0 0 / 0%) 55%);
+  pointer-events: none;
+}
+
+.carousel__card-content {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
   padding: var(--size-2);
   display: flex;
   flex-direction: column;
   gap: var(--size-1);
+  pointer-events: none;
 }
 
-.game-card__title {
-  font-size: var(--font-body-medium);
+.carousel__card-title {
+  font-size: var(--font-headline-medium);
   font-weight: var(--font-weight-bold);
-  color: var(--color-on-primary);
+  color: var(--color-white);
 
   @include line-clamp(1);
+
+  @include mobile {
+    font-size: var(--font-body-large);
+  }
 }
 
-.game-card__meta {
+.carousel__card-meta {
   display: flex;
   align-items: center;
   gap: var(--size-2);
   font-size: var(--font-label-medium);
-  color: var(--color-on-bg-low);
+  color: var(--color-white);
 }
 
-.game-card__rating,
-.game-card__likes {
+.carousel__card-rating,
+.carousel__card-likes {
   display: inline-flex;
   align-items: center;
   gap: var(--size-05);
 }
 
-.game-card__rating .game-card__icon {
-  color: var(--color-primary-high);
+.carousel__card-rating .carousel__card-icon {
+  color: var(--color-primary);
 }
 
-.game-card__likes .game-card__icon {
+.carousel__card-likes .carousel__card-icon {
   color: var(--color-lite);
 }
 
-.game-card__icon {
+.carousel__card-icon {
   display: inline-flex;
 }

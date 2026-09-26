@@ -1,6 +1,6 @@
 import './styles/main.scss';
 
-import type { GamesResponse } from '@/types/game';
+import type { GameItem, GamesResponse } from '@/types/game';
 import type { LeaderboardResponse } from '@/types/leaderboard';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
@@ -47,13 +47,23 @@ function mountApp(): void {
   const main = document.createElement('main');
   root.append(header, burgerMenu.element, main, createFooter());
 
+  let cleanupCurrentRoute: (() => void) | null = null;
+
   function renderRoute(): void {
+    cleanupCurrentRoute?.();
+    cleanupCurrentRoute = null;
+
     const route = getRouteFromHash(window.location.hash);
-    main.replaceChildren(
-      route === 'library'
-        ? createLibraryPage(games, (game) => gameDetailsDialog.open(game))
-        : createHomeMain(games, players),
-    );
+    const onDetails = (game: GameItem) => gameDetailsDialog.open(game);
+
+    if (route === 'library') {
+      main.replaceChildren(createLibraryPage(games, onDetails));
+    } else {
+      const home = createHomeMain(games, players, onDetails);
+      main.replaceChildren(home.element);
+      cleanupCurrentRoute = home.destroy;
+    }
+
     updateActiveNavLinks(route);
   }
 
