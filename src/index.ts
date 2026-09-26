@@ -4,12 +4,11 @@ import type { GamesResponse } from '@/types/game';
 import type { LeaderboardResponse } from '@/types/leaderboard';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
-import { createDevSection } from '@/components/dev-section/dev-section';
 import { createFooter } from '@/components/footer/footer';
 import { createHeader } from '@/components/header/header';
-import { createHero } from '@/components/hero/hero';
-import { createLeaderboard } from '@/components/leaderboard/leaderboard';
-import { createNewGamesSection } from '@/components/new-games/new-games';
+import { createHomeMain } from '@/pages/home/home';
+import { createLibraryPage } from '@/pages/library/library';
+import { getRouteFromHash, updateActiveNavLinks } from '@/router';
 import { sessionStore } from '@/state/session-store';
 
 import gamesData from './mocks/games.json';
@@ -44,14 +43,18 @@ function mountApp(): void {
   const players = (leaderboardData as LeaderboardResponse).data;
 
   const main = document.createElement('main');
-  main.append(
-    createHero(),
-    createNewGamesSection(games),
-    createLeaderboard(players),
-    createDevSection(),
-  );
-
   root.append(header, burgerMenu.element, main, createFooter());
+
+  function renderRoute(): void {
+    const route = getRouteFromHash(window.location.hash);
+    main.replaceChildren(
+      route === 'library' ? createLibraryPage(games) : createHomeMain(games, players),
+    );
+    updateActiveNavLinks(route);
+  }
+
+  window.addEventListener('hashchange', renderRoute);
+  renderRoute();
 }
 
 mountApp();

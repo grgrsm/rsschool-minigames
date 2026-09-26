@@ -25,7 +25,15 @@ export function el<TagName extends keyof HTMLElementTagNameMap>(
   if (options.attrs) {
     for (const [key, value] of Object.entries(options.attrs)) {
       if (typeof value === 'boolean') {
-        if (value) node.setAttribute(key, '');
+        // ARIA state/property attributes must carry the literal "true"/"false"
+        // token (an empty string is not a valid value) — every other boolean
+        // attribute (disabled, required, ...) follows the HTML convention of
+        // "present with no value" and is omitted entirely when false.
+        if (key.startsWith('aria-')) {
+          node.setAttribute(key, String(value));
+        } else if (value) {
+          node.setAttribute(key, '');
+        }
       } else {
         node.setAttribute(key, String(value));
       }

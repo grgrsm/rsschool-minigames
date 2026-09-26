@@ -31,7 +31,7 @@ function createFeatureCard(game: GameItem, isCenter: boolean): HTMLElement {
       }),
       el('div', { className: 'feature-card__scrim', attrs: { 'aria-hidden': true } }),
       el('div', { className: 'feature-card__content' }, [
-        el('h3', { className: 'feature-card__title', text: game.name }),
+        el('h2', { className: 'feature-card__title', text: game.name }),
         el('div', { className: 'feature-card__meta' }, [
           el('span', { className: 'feature-card__rating' }, [
             el('span', { className: 'feature-card__icon', html: icons.star }),

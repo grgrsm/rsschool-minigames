@@ -10,7 +10,8 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,scss,html,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,scss,html,json}\""
+    "format:check": "prettier --check \"src/**/*.{ts,scss,html,json}\"",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
@@ -18,9 +19,23 @@
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
     "prettier": "^3.3.3",
     "sass": "^1.77.8",
     "typescript": "^5.5.4",
     "vite": "^5.4.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{scss,css}": [
+      "prettier --write"
+    ],
+    "*.{json,html,md}": [
+      "prettier --write"
+    ]
   }
 }

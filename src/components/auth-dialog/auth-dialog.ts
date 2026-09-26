@@ -106,12 +106,24 @@ export function createAuthDialog(): AuthDialogApi {
 
   const tabLogin = el('button', {
     className: 'auth-dialog__tab',
-    attrs: { type: 'button', role: 'tab', id: 'auth-tab-login', 'aria-selected': true },
+    attrs: {
+      type: 'button',
+      role: 'tab',
+      id: 'auth-tab-login',
+      'aria-selected': true,
+      'aria-controls': 'auth-panel-login',
+    },
     text: 'Login',
   });
   const tabRegister = el('button', {
     className: 'auth-dialog__tab',
-    attrs: { type: 'button', role: 'tab', id: 'auth-tab-register', 'aria-selected': false },
+    attrs: {
+      type: 'button',
+      role: 'tab',
+      id: 'auth-tab-register',
+      'aria-selected': false,
+      'aria-controls': 'auth-panel-register',
+    },
     text: 'Register',
   });
   const tabs = el('div', { className: 'auth-dialog__tabs', attrs: { role: 'tablist' } }, [
@@ -152,7 +164,6 @@ export function createAuthDialog(): AuthDialogApi {
     'form',
     {
       className: 'auth-form',
-      attrs: { id: 'auth-panel-login', 'aria-labelledby': 'auth-tab-login' },
     },
     [
       el('h2', { className: 'auth-form__title', text: 'Welcome Back!' }),
@@ -169,6 +180,12 @@ export function createAuthDialog(): AuthDialogApi {
       createGoogleButton('Continue with Google'),
       el('p', { className: 'auth-switch-text' }, ["Don't have an account? ", switchToRegister]),
     ],
+  );
+
+  const loginPanel = el(
+    'div',
+    { attrs: { id: 'auth-panel-login', role: 'tabpanel', 'aria-labelledby': 'auth-tab-login' } },
+    [loginForm],
   );
 
   // ----- Register panel ----------------------------------------------------
@@ -219,7 +236,6 @@ export function createAuthDialog(): AuthDialogApi {
     'form',
     {
       className: 'auth-form',
-      attrs: { id: 'auth-panel-register', 'aria-labelledby': 'auth-tab-register', hidden: true },
     },
     [
       el('h2', { className: 'auth-form__title', text: 'Create Account' }),
@@ -239,8 +255,21 @@ export function createAuthDialog(): AuthDialogApi {
     ],
   );
 
-  const panels = el('div', { className: 'auth-dialog__panels' }, [loginForm, registerForm]);
-  const card = el('div', { className: 'auth-dialog__card' }, [ tabs, panels]);
+  const registerPanel = el(
+    'div',
+    {
+      attrs: {
+        id: 'auth-panel-register',
+        role: 'tabpanel',
+        'aria-labelledby': 'auth-tab-register',
+        hidden: true,
+      },
+    },
+    [registerForm],
+  );
+
+  const panels = el('div', { className: 'auth-dialog__panels' }, [loginPanel, registerPanel]);
+  const card = el('div', { className: 'auth-dialog__card' }, [tabs, panels]);
   dialog.append(card);
   document.body.append(dialog);
 
@@ -251,8 +280,8 @@ export function createAuthDialog(): AuthDialogApi {
     tabRegister.classList.toggle('is-active', !isLogin);
     tabLogin.setAttribute('aria-selected', String(isLogin));
     tabRegister.setAttribute('aria-selected', String(!isLogin));
-    loginForm.hidden = !isLogin;
-    registerForm.hidden = isLogin;
+    loginPanel.hidden = !isLogin;
+    registerPanel.hidden = isLogin;
     (isLogin ? loginEmail.refs.input : registerUsername.refs.input).focus();
   }
 
