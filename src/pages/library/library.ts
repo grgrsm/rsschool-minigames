@@ -20,8 +20,15 @@ function formatCategoryLabel(category: GameCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-function createGameCard(game: GameItem): HTMLElement {
+function createGameCard(game: GameItem, onDetails: (game: GameItem) => void): HTMLElement {
   const priceClass = game.price === 'Free' ? ' library-card__price--free' : '';
+
+  const detailsBtn = el('button', {
+    className: 'library-card__details',
+    attrs: { type: 'button', 'aria-label': `View details for ${game.name}` },
+    text: 'Details',
+  });
+  detailsBtn.addEventListener('click', () => onDetails(game));
 
   return el('li', { className: 'library-card' }, [
     el('img', {
@@ -57,11 +64,7 @@ function createGameCard(game: GameItem): HTMLElement {
             el('span', { text: formatCount(game.likesCount) }),
           ]),
         ]),
-        el('button', {
-          className: 'library-card__details',
-          attrs: { type: 'button', 'aria-label': `View details for ${game.name}` },
-          text: 'Details',
-        }),
+        detailsBtn,
       ]),
     ]),
   ]);
@@ -146,7 +149,10 @@ function createPagination(
   return nav;
 }
 
-export function createLibraryPage(games: GameItem[]): HTMLElement {
+export function createLibraryPage(
+  games: GameItem[],
+  onDetails: (game: GameItem) => void,
+): HTMLElement {
   const categories = (categoriesData as CategoriesResponse).data;
   let activeCategory = categories.find((category) => category.isDefault)?.slug ?? 'all';
   let page = 1;
@@ -205,7 +211,7 @@ export function createLibraryPage(games: GameItem[]): HTMLElement {
     const start = (page - 1) * PAGE_SIZE;
     const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
-    grid.replaceChildren(...pageItems.map((game) => createGameCard(game)));
+    grid.replaceChildren(...pageItems.map((game) => createGameCard(game, onDetails)));
     paginationSlot.replaceChildren(
       createPagination(page, totalPages, (nextPage) => {
         page = nextPage;

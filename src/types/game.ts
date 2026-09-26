@@ -1,4 +1,5 @@
 export type GameCategory = 'puzzle' | 'card' | 'match' | 'farm' | 'strategy' | 'arcade';
+export type GamePlayers = 'Solo' | 'Multiplayer';
 
 export interface GameItem {
   slug: string;
@@ -10,6 +11,8 @@ export interface GameItem {
   likesCount: number;
   cardImage: string;
   featured: boolean;
+  players: GamePlayers;
+  duration: string;
 }
 
 export interface GamesResponse {

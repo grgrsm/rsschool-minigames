@@ -5,6 +5,7 @@ import type { LeaderboardResponse } from '@/types/leaderboard';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createFooter } from '@/components/footer/footer';
+import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
 import { createHomeMain } from '@/pages/home/home';
 import { createLibraryPage } from '@/pages/library/library';
@@ -26,6 +27,7 @@ function mountApp(): void {
   const root = getAppRoot();
 
   const authDialog = createAuthDialog();
+  const gameDetailsDialog = createGameDetailsDialog();
 
   const burgerMenu = createBurgerMenu({
     onLoginClick: () => authDialog.open('login'),
@@ -48,7 +50,9 @@ function mountApp(): void {
   function renderRoute(): void {
     const route = getRouteFromHash(window.location.hash);
     main.replaceChildren(
-      route === 'library' ? createLibraryPage(games) : createHomeMain(games, players),
+      route === 'library'
+        ? createLibraryPage(games, (game) => gameDetailsDialog.open(game))
+        : createHomeMain(games, players),
     );
     updateActiveNavLinks(route);
   }

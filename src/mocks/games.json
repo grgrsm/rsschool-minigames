@@ -9,7 +9,9 @@
       "rating": 4.8,
       "likesCount": 28750,
       "cardImage": "assets/images/games/vacation-cafe-simulator-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "winter-burrow",
@@ -20,7 +22,9 @@
       "rating": 4.9,
       "likesCount": 32400,
       "cardImage": "assets/images/games/winter-burrow-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "shelve-the-potions",
@@ -31,7 +35,9 @@
       "rating": 4.7,
       "likesCount": 21300,
       "cardImage": "assets/images/games/shelve-the-potions-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "heartopia",
@@ -42,7 +48,9 @@
       "rating": 4.6,
       "likesCount": 46800,
       "cardImage": "assets/images/games/heartopia-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Multiplayer",
+      "duration": "40-90 min"
     },
     {
       "slug": "palia",
@@ -53,7 +61,9 @@
       "rating": 4.8,
       "likesCount": 89500,
       "cardImage": "assets/images/games/palia-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "cat-mail-co",
@@ -64,7 +74,9 @@
       "rating": 4.9,
       "likesCount": 38200,
       "cardImage": "assets/images/games/cat-mail-co-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "leaf-it-alone",
@@ -75,7 +87,9 @@
       "rating": 4.4,
       "likesCount": 12600,
       "cardImage": "assets/images/games/leaf-it-alone-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "leafy-corner",
@@ -86,7 +100,9 @@
       "rating": 4.7,
       "likesCount": 19800,
       "cardImage": "assets/images/games/leafy-corner-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "grimshire",
@@ -97,7 +113,9 @@
       "rating": 4.6,
       "likesCount": 15700,
       "cardImage": "assets/images/games/grimshire-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "tiny-glade",
@@ -108,7 +126,9 @@
       "rating": 4.9,
       "likesCount": 67300,
       "cardImage": "assets/images/games/tiny-glade-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "whisper-of-the-house",
@@ -119,7 +139,9 @@
       "rating": 4.8,
       "likesCount": 24900,
       "cardImage": "assets/images/games/whisper-of-the-house-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "tukoni-forest-keepers",
@@ -130,7 +152,9 @@
       "rating": 4.9,
       "likesCount": 31200,
       "cardImage": "assets/images/games/tukoni-forest-keepers-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "cat-chess",
@@ -141,7 +165,9 @@
       "rating": 4.6,
       "likesCount": 17400,
       "cardImage": "assets/images/games/cat-chess-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "cast-n-chill",
@@ -152,7 +178,9 @@
       "rating": 4.7,
       "likesCount": 26800,
       "cardImage": "assets/images/games/cast-n-chill-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "little-corners",
@@ -163,7 +191,9 @@
       "rating": 4.8,
       "likesCount": 41500,
       "cardImage": "assets/images/games/little-corners-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "tailside-cozy-cafe-sim",
@@ -174,7 +204,9 @@
       "rating": 4.8,
       "likesCount": 35600,
       "cardImage": "assets/images/games/tailside-cozy-cafe-sim-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "islanders-new-shores",
@@ -185,7 +217,9 @@
       "rating": 4.9,
       "likesCount": 54200,
       "cardImage": "assets/images/games/islanders-new-shores-card.jpg",
-      "featured": true
+      "featured": true,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "camper-van-make-it-home",
@@ -196,7 +230,9 @@
       "rating": 4.7,
       "likesCount": 29300,
       "cardImage": "assets/images/games/camper-van-make-it-home-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "organized-inside",
@@ -207,7 +243,9 @@
       "rating": 4.8,
       "likesCount": 22700,
       "cardImage": "assets/images/games/organized-inside-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "cozy-solitaire",
@@ -218,7 +256,9 @@
       "rating": 4.5,
       "likesCount": 38900,
       "cardImage": "assets/images/games/cozy-solitaire-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "cozy-sudoku",
@@ -229,7 +269,9 @@
       "rating": 4.6,
       "likesCount": 21500,
       "cardImage": "assets/images/games/cozy-sudoku-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "koroneko",
@@ -240,7 +282,9 @@
       "rating": 4.9,
       "likesCount": 47300,
       "cardImage": "assets/images/games/koroneko-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "15-30 min"
     },
     {
       "slug": "wytchwood",
@@ -251,7 +295,9 @@
       "rating": 4.7,
       "likesCount": 33100,
       "cardImage": "assets/images/games/wytchwood-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     },
     {
       "slug": "the-wild-at-heart",
@@ -262,7 +308,9 @@
       "rating": 4.8,
       "likesCount": 30400,
       "cardImage": "assets/images/games/the-wild-at-heart-card.jpg",
-      "featured": false
+      "featured": false,
+      "players": "Solo",
+      "duration": "40-90 min"
     }
   ],
   "meta": {

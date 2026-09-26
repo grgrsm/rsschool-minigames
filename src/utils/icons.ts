@@ -43,4 +43,6 @@ export const icons = {
   chat: `<svg viewBox="0 0 22 20" width="16" height="16" fill="none" aria-hidden="true"><path d="M2 3.5h18v11H9.5L5 18v-3.5H2v-11Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
 
   github: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.7 5.47 7.78.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2.01.38-2.53-.5-2.7-.96-.09-.24-.48-.96-.82-1.16-.28-.15-.68-.53-.01-.54.63-.01 1.08.6 1.23.85.72 1.24 1.87.89 2.33.68.07-.53.28-.89.51-1.1-1.78-.2-3.64-.92-3.64-4.05 0-.9.31-1.63.82-2.21-.08-.2-.36-1.04.08-2.16 0 0 .67-.22 2.2.85a7.4 7.4 0 0 1 4 0c1.53-1.07 2.2-.85 2.2-.85.44 1.12.16 1.96.08 2.16.51.58.82 1.3.82 2.21 0 3.14-1.87 3.85-3.65 4.05.29.26.54.75.54 1.52 0 1.1-.01 1.99-.01 2.26 0 .22.15.48.55.4A8.22 8.22 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"/></svg>`,
+
+  send: `<svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden="true"><path d="M18 2 9 11M18 2 12.5 18l-3.5-7L2 7 18 2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
