@@ -7,7 +7,7 @@
   z-index: var(--z-burger-menu);
   display: flex;
   flex-direction: column;
-  width: min(100%, 360px);
+  width: 100%;
   margin-inline-start: auto;
   padding: var(--size-2) var(--size-3) var(--size-4);
   background-color: var(--color-bg-footer);
@@ -56,11 +56,11 @@
   color: var(--color-white);
 
   &:hover {
-    border-color: var(--color-primary); 
+    border-color: var(--color-primary);
   }
 
   &:hover:not(:disabled) {
-      background-color: var( --color-bg-footer-low);
+    background-color: var(--color-bg-footer-low);
   }
 }
 

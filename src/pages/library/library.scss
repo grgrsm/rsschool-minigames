@@ -65,35 +65,47 @@ $card-height-tablet: 152px;
   gap: var(--size-2);
   padding-block: var(--size-2);
 
-  @include small-mobile {
+  @include mobile {
     flex-direction: column;
     align-items: stretch;
   }
 }
 
 .library-filters__categories-slot {
-  flex: 1;
+  flex: 0 1 658px;
   min-width: 0;
+  width: 658px;
+
+  @include mobile {
+    width: 100%;
+    flex-basis: auto;
+  }
 }
 
 .library-filters__categories {
   display: flex;
   align-items: center;
   gap: var(--size-1);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 
-  @include small-mobile {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    margin-inline: calc(var(--size-2) * -1);
-    padding-inline: var(--size-2);
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 
-    &::-webkit-scrollbar {
-      display: none;
-    }
+.library-filters__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--size-2);
+
+  @include mobile {
+    width: 100%;
   }
 }
 
@@ -134,20 +146,49 @@ $card-height-tablet: 152px;
   align-items: center;
   justify-content: center;
   gap: var(--size-1);
-  padding: var(--size-1) var(--size-2);
+  width: 200px;
+  height: 44px;
+  padding: 0 var(--size-2);
+  font-family: var(--font-primary);
   font-size: var(--font-label-large);
   font-weight: var(--font-weight-bold);
   color: var(--color-on-primary);
   background-color: var(--color-white);
+  border: none;
   border-radius: var(--corner-extra-large);
   outline: 2px solid var(--color-on-primary);
   outline-offset: -2px;
   white-space: nowrap;
-  flex-shrink: 0;
+  cursor: pointer;
 
-  @include small-mobile {
-    justify-content: space-between;
+  @include focus-ring;
+}
+
+.library-filter-button {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-16);
+  height: var(--size-5-5);
+  padding: 0 var(--size-2);
+  font-family: var(--font-primary);
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+  background-color: var(--color-primary);
+  border: none;
+  border-radius: var(--corner-extra-large);
+  outline: 2px solid var(--color-on-primary);
+  outline-offset: -2px;
+  box-shadow: var(--shadow-level-1);
+  cursor: pointer;
+
+  @include mobile {
+    display: inline-flex;
+    align-self: flex-start;
   }
+
+  @include focus-ring;
 }
 
 .library-sort__icon {
@@ -166,7 +207,7 @@ $card-height-tablet: 152px;
   display: flex;
   flex: 1 1 calc(50% - var(--size-3) / 2);
   min-width: 0;
-  height: $card-height;
+  min-height: $card-height;
   background-color: var(--color-white);
   overflow: hidden;
   border-radius: var(--corner-large);
@@ -176,7 +217,8 @@ $card-height-tablet: 152px;
 
   @include tablet-down {
     flex-basis: 100%;
-    height: $card-height-tablet;
+    height: auto;
+    min-height: $card-height-tablet;
   }
 
   @include small-mobile {
@@ -188,12 +230,15 @@ $card-height-tablet: 152px;
 .library-card__image {
   flex: 0 0 $card-image-width;
   width: $card-image-width;
-  height: 100%;
+  height: auto;
+  align-self: stretch;
   object-fit: cover;
 
   @include tablet-down {
     flex-basis: $card-image-width-tablet;
     width: $card-image-width-tablet;
+    align-self: stretch;
+    height: auto;
   }
 
   @include small-mobile {
@@ -218,6 +263,10 @@ $card-height-tablet: 152px;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--size-2);
+
+  @include small-mobile {
+    align-items: flex-start;
+  }
 }
 
 .library-card__heading {
@@ -226,6 +275,12 @@ $card-height-tablet: 152px;
   align-items: center;
   gap: var(--size-1);
   min-width: 0;
+
+  @include small-mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--size-1);
+  }
 }
 
 .library-card__title {
@@ -234,6 +289,11 @@ $card-height-tablet: 152px;
   color: var(--color-on-primary);
 
   @include line-clamp(1);
+
+  @include tablet {
+    display: block;
+    overflow: visible;
+  }
 }
 
 .library-card__badge {
@@ -261,19 +321,44 @@ $card-height-tablet: 152px;
   &--free {
     color: var(--color-price-free);
   }
+
+  @include small-mobile {
+    align-self: flex-start;
+  }
 }
 
 .library-card__description {
   flex: 1;
+  display: block;
+  overflow: visible;
   font-size: var(--font-body-small);
   font-weight: var(--font-weight-medium);
   line-height: 1.4;
   color: var(--color-on-bg);
+}
 
-  @include line-clamp(3);
+.library-card {
+  display: flex;
+  flex: 1 1 calc(50% - var(--size-3) / 2);
+  min-width: 0;
+  min-height: $card-height;
+  background-color: var(--color-white);
+  overflow: hidden;
+  border-radius: var(--corner-large);
+  outline: 2.5px solid var(--color-on-primary);
+  outline-offset: -2.5px;
+  box-shadow: var(--shadow-level-1);
+
+  @include tablet-down {
+    flex-basis: 100%;
+    height: auto;
+    min-height: $card-height-tablet;
+  }
 
   @include small-mobile {
-    @include line-clamp(4);
+    position: relative; // Важно для точного позиционирования цены
+    flex-direction: column;
+    height: auto;
   }
 }
 
@@ -286,6 +371,7 @@ $card-height-tablet: 152px;
   @include small-mobile {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--size-2);
   }
 }
 
@@ -322,16 +408,25 @@ $card-height-tablet: 152px;
 
 .library-card__details {
   flex-shrink: 0;
-  padding: var(--btn-medium-padding);
+  width: 80px;
+  height: 33px;
+  padding: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   font-family: var(--font-primary);
   font-size: var(--font-label-large);
   font-weight: var(--font-weight-bold);
   color: var(--color-on-primary);
+
   background-color: var(--color-primary);
   border: none;
   border-radius: var(--corner-small);
-  outline: 2px solid var(--color-on-primary);
+  outline: var(--size-025) solid var(--color-on-primary);
   outline-offset: -2px;
+
   cursor: pointer;
   transition: background-color var(--transition-fast);
 
@@ -339,11 +434,99 @@ $card-height-tablet: 152px;
     background-color: var(--color-primary-high);
   }
 
+  @include focus-ring;
+
   @include small-mobile {
     width: 100%;
+    height: var(--size-4-5);
+  }
+}
+
+.library-filter-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  width: 200px;
+  height: 199px;
+  margin: 0;
+  padding: 0;
+
+  border: none;
+  background: transparent;
+  overflow: visible;
+
+  &::backdrop {
+    background: transparent;
+  }
+}
+
+.library-filter-dialog__card {
+  position: relative;
+
+  display: flex;
+  width: 200px;
+  height: 199px;
+  overflow: hidden;
+  flex-direction: column;
+
+  background-color: var(--color-white);
+  border-radius: var(--corner-medium);
+  outline: 2px solid var(--color-on-primary);
+  outline-offset: -2px;
+  box-shadow: var(--shadow-level-1);
+}
+
+.library-filter-dialog__title {
+  @include visually-hidden;
+}
+
+.library-filter-dialog__options {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.library-filter-dialog__option {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--size-1);
+
+  width: 100%;
+  min-height: 0;
+  padding: 0 var(--size-2);
+
+  font-family: var(--font-primary);
+  font-size: var(--font-label-large);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-on-primary);
+  text-align: left;
+
+  background-color: var(--color-white);
+  border: none;
+  border-bottom: 1px solid var(--color-on-primary);
+
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: var(--color-surface);
+  }
+
+  &.is-active {
+    font-weight: var(--font-weight-bold);
+    background-color: var(--color-primary);
   }
 
   @include focus-ring;
+}
+
+.library-filter-dialog__close {
+  @include visually-hidden;
 }
 
 .library__pagination-wrap {
