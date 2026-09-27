@@ -121,7 +121,11 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
     attrs: { type: 'button', 'aria-label': 'Close dialog' },
     html: icons.close,
   });
-  const cover = el('div', { className: 'game-details__cover' }, [closeBtn]);
+  const coverImage = el('img', {
+    className: 'game-details__cover-image',
+    attrs: { src: '', alt: '', width: 460, height: 215 },
+  });
+  const cover = el('div', { className: 'game-details__cover' }, [coverImage, closeBtn]);
 
   const title = el('h2', {
     className: 'game-details__title',
@@ -283,7 +287,8 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
   const api: GameDetailsDialogApi = {
     element: dialog,
     open: (game: GameItem) => {
-      cover.style.backgroundImage = `url(${game.cardImage})`;
+      coverImage.src = game.cardImage;
+      coverImage.alt = game.name;
       title.textContent = game.name;
       ratingValue.textContent = game.rating.toFixed(1);
       likesValue.textContent = formatCount(game.likesCount);

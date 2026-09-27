@@ -25,28 +25,52 @@ function createGameCard(game: GameItem, onDetails: (game: GameItem) => void): HT
 
   const detailsBtn = el('button', {
     className: 'library-card__details',
-    attrs: { type: 'button', 'aria-label': `View details for ${game.name}` },
+    attrs: {
+      type: 'button',
+      'aria-label': `View details for ${game.name}`,
+    },
     text: 'Details',
   });
+
   detailsBtn.addEventListener('click', () => onDetails(game));
 
   return el('li', { className: 'library-card' }, [
     el('img', {
       className: 'library-card__image',
-      attrs: { src: game.cardImage, alt: game.name, loading: 'lazy', width: 320, height: 200 },
+      attrs: {
+        src: game.cardImage,
+        alt: game.name,
+        loading: 'lazy',
+        width: 320,
+        height: 200,
+      },
     }),
+
     el('div', { className: 'library-card__body' }, [
       el('div', { className: 'library-card__header' }, [
         el('div', { className: 'library-card__heading' }, [
-          el('h2', { className: 'library-card__title', text: game.name }),
+          el('h2', {
+            className: 'library-card__title',
+            text: game.name,
+          }),
+
           el('span', {
             className: 'library-card__badge',
             text: formatCategoryLabel(game.category),
           }),
         ]),
-        el('span', { className: `library-card__price${priceClass}`, text: game.price }),
+
+        el('span', {
+          className: `library-card__price${priceClass}`,
+          text: game.price,
+        }),
       ]),
-      el('p', { className: 'library-card__description', text: game.shortDescription }),
+
+      el('p', {
+        className: 'library-card__description',
+        text: game.shortDescription,
+      }),
+
       el('div', { className: 'library-card__footer' }, [
         el('div', { className: 'library-card__meta' }, [
           el('span', { className: 'library-card__stat' }, [
@@ -54,16 +78,24 @@ function createGameCard(game: GameItem, onDetails: (game: GameItem) => void): HT
               className: 'library-card__icon library-card__icon--rating',
               html: icons.star,
             }),
-            el('span', { text: game.rating.toFixed(1) }),
+
+            el('span', {
+              text: game.rating.toFixed(1),
+            }),
           ]),
+
           el('span', { className: 'library-card__stat' }, [
             el('span', {
               className: 'library-card__icon library-card__icon--likes',
               html: icons.heart,
             }),
-            el('span', { text: formatCount(game.likesCount) }),
+
+            el('span', {
+              text: formatCount(game.likesCount),
+            }),
           ]),
         ]),
+
         detailsBtn,
       ]),
     ]),
@@ -77,28 +109,61 @@ function createCategoryChips(
 ): HTMLElement {
   const list = el('div', {
     className: 'library-filters__categories',
-    attrs: { role: 'group', 'aria-label': 'Filter games by category' },
+    attrs: {
+      role: 'group',
+      'aria-label': 'Filter games by category',
+    },
   });
 
   categories.forEach((category) => {
     const isActive = category.slug === activeSlug;
+
     const chip = el('button', {
       className: `library-chip${isActive ? ' library-chip--active' : ''}`,
-      attrs: { type: 'button', 'aria-pressed': isActive },
+      attrs: {
+        type: 'button',
+        'aria-pressed': isActive,
+      },
       text: category.label,
     });
+
     chip.addEventListener('click', () => onSelect(category.slug));
+
     list.append(chip);
   });
 
   return list;
 }
 
-function createSortIndicator(): HTMLElement {
-  return el('div', { className: 'library-sort' }, [
-    el('span', { text: 'Sort by: Rating ↓' }),
-    el('span', { className: 'library-sort__icon', html: icons.chevronDown }),
-  ]);
+/*
+ * Existing Sort button.
+ *
+ * Do not change its visual design or text.
+ */
+function createSortIndicator(onClick: () => void): HTMLElement {
+  const button = el('button', {
+    className: 'library-sort',
+    attrs: {
+      type: 'button',
+      'aria-label': 'Open sort options',
+    },
+  });
+
+  button.append(
+    el('span', {
+      className: 'library-sort__label',
+      text: 'Sort by: Rating ↓',
+    }),
+
+    el('span', {
+      className: 'library-sort__icon',
+      html: icons.chevronDown,
+    }),
+  );
+
+  button.addEventListener('click', onClick);
+
+  return button;
 }
 
 function createPagination(
@@ -108,23 +173,33 @@ function createPagination(
 ): HTMLElement {
   const nav = el('nav', {
     className: 'library-pagination',
-    attrs: { 'aria-label': 'Library pagination' },
+    attrs: {
+      'aria-label': 'Library pagination',
+    },
   });
 
   const prevBtn = el('button', {
     className: 'library-page-btn library-page-btn--nav',
-    attrs: { type: 'button', 'aria-label': 'Previous page', disabled: page === 1 },
+    attrs: {
+      type: 'button',
+      'aria-label': 'Previous page',
+      disabled: page === 1,
+    },
     html: icons.arrowLeft,
   });
+
   prevBtn.addEventListener('click', () => onChange(page - 1));
+
   nav.append(prevBtn);
 
   for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
     const isActive = pageNumber === page;
+
     const attrs: Record<string, string | number | boolean> = {
       type: 'button',
       'aria-label': `Page ${pageNumber}`,
     };
+
     if (isActive) {
       attrs['aria-current'] = 'page';
     }
@@ -134,19 +209,159 @@ function createPagination(
       attrs,
       text: String(pageNumber),
     });
+
     pageBtn.addEventListener('click', () => onChange(pageNumber));
+
     nav.append(pageBtn);
   }
 
   const nextBtn = el('button', {
     className: 'library-page-btn library-page-btn--nav',
-    attrs: { type: 'button', 'aria-label': 'Next page', disabled: page === totalPages },
+    attrs: {
+      type: 'button',
+      'aria-label': 'Next page',
+      disabled: page === totalPages,
+    },
     html: icons.arrowRight,
   });
+
   nextBtn.addEventListener('click', () => onChange(page + 1));
+
   nav.append(nextBtn);
 
   return nav;
+}
+
+interface SortOption {
+  value: 'rating-desc' | 'rating-asc' | 'name-asc' | 'name-desc';
+  label: string;
+}
+
+const SORT_OPTIONS: SortOption[] = [
+  {
+    value: 'rating-asc',
+    label: 'Rating ↑',
+  },
+  {
+    value: 'rating-desc',
+    label: 'Rating ↓',
+  },
+  {
+    value: 'name-asc',
+    label: 'Name A→Z',
+  },
+  {
+    value: 'name-desc',
+    label: 'Name Z→A',
+  },
+];
+
+function createFilterDialog(
+  getActiveSort: () => SortOption['value'],
+  onSelect: (value: SortOption['value']) => void,
+): {
+  element: HTMLDialogElement;
+  open: (anchor: HTMLElement) => void;
+} {
+  const dialog = el('dialog', {
+    className: 'library-filter-dialog',
+    attrs: {
+      'aria-labelledby': 'library-filter-title',
+    },
+  });
+
+  const title = el('h2', {
+    className: 'library-filter-dialog__title',
+    attrs: {
+      id: 'library-filter-title',
+    },
+    text: 'Sort options',
+  });
+
+  const options = el('div', {
+    className: 'library-filter-dialog__options',
+    attrs: {
+      role: 'listbox',
+    },
+  });
+
+  const renderOptions = (): void => {
+    options.replaceChildren(
+      ...SORT_OPTIONS.map((option) => {
+        const isActive = option.value === getActiveSort();
+
+        const button = el('button', {
+          className: `library-filter-dialog__option${isActive ? ' is-active' : ''}`,
+          attrs: {
+            type: 'button',
+            role: 'option',
+            'aria-selected': isActive,
+          },
+          text: option.label,
+        });
+
+        button.addEventListener('click', () => {
+          onSelect(option.value);
+          dialog.close();
+        });
+
+        return button;
+      }),
+    );
+  };
+
+  const closeBtn = el('button', {
+    className: 'library-filter-dialog__close',
+    attrs: {
+      type: 'button',
+      'aria-label': 'Close filter',
+    },
+    html: icons.close,
+  });
+
+  closeBtn.addEventListener('click', () => dialog.close());
+
+  dialog.append(
+    el('div', { className: 'library-filter-dialog__card' }, [title, options, closeBtn]),
+  );
+
+  document.body.append(dialog);
+
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) {
+      dialog.close();
+    }
+  });
+
+  dialog.addEventListener('close', () => {
+    document.body.classList.remove('no-scroll');
+  });
+
+  return {
+    element: dialog,
+
+    open: (anchor: HTMLElement) => {
+      renderOptions();
+
+      const rect = anchor.getBoundingClientRect();
+
+      const width = 200;
+      const gap = 8;
+
+      const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
+
+      const top = rect.bottom + gap;
+
+      dialog.style.left = `${left}px`;
+      dialog.style.top = `${top}px`;
+
+      document.body.classList.add('no-scroll');
+
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    },
+  };
 }
 
 export function createLibraryPage(
@@ -154,22 +369,49 @@ export function createLibraryPage(
   onDetails: (game: GameItem) => void,
 ): HTMLElement {
   const categories = (categoriesData as CategoriesResponse).data;
+
   let activeCategory = categories.find((category) => category.isDefault)?.slug ?? 'all';
+
+  let activeSort: SortOption['value'] = 'rating-desc';
   let page = 1;
+
+  /*
+   * Every game opened from Library uses Tukoni:
+   * Forest Keepers in the details modal.
+   */
+  const tukoniGame = games.find((game) => game.slug === 'tukoni-forest-keepers');
+
+  const filterDialog = createFilterDialog(
+    () => activeSort,
+    (value) => {
+      activeSort = value;
+      page = 1;
+      update();
+    },
+  );
 
   const section = el('section', {
     className: 'library',
-    attrs: { id: 'library', 'aria-labelledby': 'library-title' },
+    attrs: {
+      id: 'library',
+      'aria-labelledby': 'library-title',
+    },
   });
-  const container = el('div', { className: 'library__container' });
+
+  const container = el('div', {
+    className: 'library__container',
+  });
 
   container.append(
     el('div', { className: 'library__header' }, [
       el('h1', {
         className: 'library__title',
-        attrs: { id: 'library-title' },
+        attrs: {
+          id: 'library-title',
+        },
         text: 'Game Library',
       }),
+
       el('p', {
         className: 'library__subtitle',
         text: 'Browse our collection of casual mini-games',
@@ -177,24 +419,57 @@ export function createLibraryPage(
     ]),
   );
 
-  const chipsSlot = el('div', { className: 'library-filters__categories-slot' });
-  const filtersRow = el('div', { className: 'library__filters' }, [
-    chipsSlot,
-    createSortIndicator(),
-  ]);
+  const chipsSlot = el('div', {
+    className: 'library-filters__categories-slot',
+  });
+
+  const sortButton = createSortIndicator(() => filterDialog.open(sortButton));
+
+  const filtersRow = el(
+    'div',
+    {
+      className: 'library__filters',
+    },
+    [
+      chipsSlot,
+
+      el(
+        'div',
+        {
+          className: 'library-filters__actions',
+        },
+        [sortButton],
+      ),
+    ],
+  );
+
   container.append(filtersRow);
 
-  const grid = el('ul', { className: 'library__grid', attrs: { 'aria-label': 'Games list' } });
-  const paginationSlot = el('div', { className: 'library__pagination-wrap' });
+  const grid = el('ul', {
+    className: 'library__grid',
+    attrs: {
+      'aria-label': 'Games list',
+    },
+  });
+
+  const paginationSlot = el('div', {
+    className: 'library__pagination-wrap',
+  });
+
   container.append(grid, paginationSlot);
+
   section.append(container);
 
   function renderChips(): void {
     chipsSlot.replaceChildren(
       createCategoryChips(categories, activeCategory, (slug) => {
-        if (slug === activeCategory) return;
+        if (slug === activeCategory) {
+          return;
+        }
+
         activeCategory = slug;
         page = 1;
+
         renderChips();
         update();
       }),
@@ -203,15 +478,41 @@ export function createLibraryPage(
 
   function update(): void {
     const filtered =
-      activeCategory === 'all' ? games : games.filter((game) => game.category === activeCategory);
+      activeCategory === 'all'
+        ? [...games]
+        : games.filter((game) => game.category === activeCategory);
+
+    filtered.sort((a, b) => {
+      switch (activeSort) {
+        case 'rating-asc':
+          return a.rating - b.rating;
+
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+
+        case 'rating-desc':
+        default:
+          return b.rating - a.rating;
+      }
+    });
+
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
     if (page > totalPages) {
       page = totalPages;
     }
+
     const start = (page - 1) * PAGE_SIZE;
+
     const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
-    grid.replaceChildren(...pageItems.map((game) => createGameCard(game, onDetails)));
+    grid.replaceChildren(
+      ...pageItems.map((game) => createGameCard(game, () => onDetails(tukoniGame ?? game))),
+    );
+
     paginationSlot.replaceChildren(
       createPagination(page, totalPages, (nextPage) => {
         page = nextPage;
