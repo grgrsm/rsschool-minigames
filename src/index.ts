@@ -9,7 +9,9 @@ import { createGameDetailsDialog } from '@/components/game-details-dialog/game-d
 import { createHeader } from '@/components/header/header';
 import { createHomeMain } from '@/pages/home/home';
 import { createLibraryPage } from '@/pages/library/library';
-import { getRouteFromHash, updateActiveNavLinks } from '@/router';
+import { createNotFoundPage } from '@/pages/not-found/not-found';
+import { getGameSlug, getLocation, initRouter, subscribe, updateActiveNavLinks } from '@/router';
+import type { RouteLocation } from '@/router';
 import { sessionStore } from '@/state/session-store';
 
 import gamesData from './mocks/games.json';
@@ -48,27 +50,59 @@ function mountApp(): void {
   root.append(header, burgerMenu.element, main, createFooter());
 
   let cleanupCurrentRoute: (() => void) | null = null;
+  let currentGameSlug: string | null = null;
 
-  function renderRoute(): void {
+  const onDetails = (game: GameItem): void => gameDetailsDialog.open(game);
+
+  function findGameBySlug(slug: string): GameItem | undefined {
+    return games.find((game) => game.slug === slug);
+  }
+
+  /** Deep link / Back-Forward for `?game=<slug>`, independent from which page is under it. */
+  function syncGameModal(params: URLSearchParams): void {
+    const slug = getGameSlug(params);
+
+    if (slug === currentGameSlug) {
+      return;
+    }
+    currentGameSlug = slug;
+
+    if (slug === null) {
+      gameDetailsDialog.close();
+      return;
+    }
+
+    const game = findGameBySlug(slug);
+    if (game) {
+      gameDetailsDialog.open(game);
+    } else {
+      // Unknown slug: drop the param rather than show a broken modal.
+      currentGameSlug = null;
+      history.replaceState(history.state, '', location.pathname);
+    }
+  }
+
+  function renderRoute({ route, params }: RouteLocation): void {
     cleanupCurrentRoute?.();
     cleanupCurrentRoute = null;
 
-    const route = getRouteFromHash(window.location.hash);
-    const onDetails = (game: GameItem) => gameDetailsDialog.open(game);
-
     if (route === 'library') {
       main.replaceChildren(createLibraryPage(games, onDetails));
-    } else {
+    } else if (route === 'home') {
       const home = createHomeMain(games, players, onDetails);
       main.replaceChildren(home.element);
       cleanupCurrentRoute = home.destroy;
+    } else {
+      main.replaceChildren(createNotFoundPage());
     }
 
     updateActiveNavLinks(route);
+    syncGameModal(params);
   }
 
-  window.addEventListener('hashchange', renderRoute);
-  renderRoute();
+  initRouter();
+  subscribe(renderRoute);
+  renderRoute(getLocation());
 }
 
 mountApp();
