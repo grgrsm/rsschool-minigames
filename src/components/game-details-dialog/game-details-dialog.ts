@@ -1,10 +1,13 @@
 import type { GameCategory, GameItem } from '@/types/game';
+import { closeGameModal, openGameModal } from '@/router';
 import { el, formatCount } from '@/utils/dom';
 import { icons } from '@/utils/icons';
 
 export interface GameDetailsDialogApi {
   element: HTMLDialogElement;
   open: (game: GameItem) => void;
+  /** Closes the dialog without touching the URL — used when the URL already changed (popstate). */
+  close: () => void;
 }
 
 interface TopRecord {
@@ -274,11 +277,16 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
   dialog.append(card);
   document.body.append(dialog);
 
-  closeBtn.addEventListener('click', () => dialog.close());
+  closeBtn.addEventListener('click', () => closeGameModal());
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) {
-      dialog.close();
+      closeGameModal();
     }
+  });
+  // Escape fires `cancel` before `close` and does not touch the URL on its own.
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeGameModal();
   });
   dialog.addEventListener('close', () => {
     document.body.classList.remove('no-scroll');
@@ -306,6 +314,12 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
       document.body.classList.add('no-scroll');
       if (!dialog.open) {
         dialog.showModal();
+      }
+      openGameModal(game.slug);
+    },
+    close: () => {
+      if (dialog.open) {
+        dialog.close();
       }
     },
   };
