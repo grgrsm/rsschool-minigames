@@ -1,18 +1,14 @@
+import { apiService, isAbortError } from '@/api/apiService';
+import { toGameItem } from '@/api/mappers';
 import type { GameCategory, GameItem } from '@/types/game';
+import { createEmptyState } from '@/components/feedback/empty-state';
+import { createErrorBanner, getErrorMessage } from '@/components/feedback/error-banner';
+import { createSkeleton } from '@/components/feedback/skeleton';
+import type { CategoryDto, GamesSort } from '@/types/api';
+import { DEFAULT_LIBRARY_STATE, readLibraryState, writeLibraryState } from '@/utils/library-query';
+import type { LibraryUrlState } from '@/utils/library-query';
 import { el, formatCount } from '@/utils/dom';
 import { icons } from '@/utils/icons';
-
-import categoriesData from '@/mocks/categories.json';
-
-interface CategoryDef {
-  slug: string;
-  label: string;
-  isDefault: boolean;
-}
-
-interface CategoriesResponse {
-  data: CategoryDef[];
-}
 
 const PAGE_SIZE = 6;
 
@@ -103,7 +99,7 @@ function createGameCard(game: GameItem, onDetails: (game: GameItem) => void): HT
 }
 
 function createCategoryChips(
-  categories: CategoryDef[],
+  categories: CategoryDto[],
   activeSlug: string,
   onSelect: (slug: string) => void,
 ): HTMLElement {
@@ -166,10 +162,16 @@ function createSortIndicator(onClick: () => void): HTMLElement {
   return button;
 }
 
+/**
+ * `disabled` forces every control off regardless of position — used for the
+ * "Data Not Found" empty state, where the spec calls for pagination pinned
+ * to page 1 with switching blocked.
+ */
 function createPagination(
   page: number,
   totalPages: number,
   onChange: (page: number) => void,
+  disabled = false,
 ): HTMLElement {
   const nav = el('nav', {
     className: 'library-pagination',
@@ -183,7 +185,7 @@ function createPagination(
     attrs: {
       type: 'button',
       'aria-label': 'Previous page',
-      disabled: page === 1,
+      disabled: disabled || page === 1,
     },
     html: icons.arrowLeft,
   });
@@ -198,6 +200,7 @@ function createPagination(
     const attrs: Record<string, string | number | boolean> = {
       type: 'button',
       'aria-label': `Page ${pageNumber}`,
+      disabled,
     };
 
     if (isActive) {
@@ -220,7 +223,7 @@ function createPagination(
     attrs: {
       type: 'button',
       'aria-label': 'Next page',
-      disabled: page === totalPages,
+      disabled: disabled || page === totalPages,
     },
     html: icons.arrowRight,
   });
@@ -233,7 +236,7 @@ function createPagination(
 }
 
 interface SortOption {
-  value: 'rating-desc' | 'rating-asc' | 'name-asc' | 'name-desc';
+  value: GamesSort;
   label: string;
 }
 
@@ -364,30 +367,34 @@ function createFilterDialog(
   };
 }
 
+export interface LibraryPage {
+  element: HTMLElement;
+  /** Aborts the in-flight categories/games request, if any. */
+  destroy: () => void;
+}
+
+/**
+ * The Library route. The URL is the only state this page keeps — every
+ * filter/sort/page change goes through `writeLibraryState`, which updates
+ * the URL and lets the app's router fully remount this page with the new
+ * params (see `subscribe` in `src/index.ts`). That keeps deep links,
+ * Back/Forward and this page's own controls all driven by the same source
+ * of truth, per the SPA-router spec.
+ */
 export function createLibraryPage(
-  games: GameItem[],
+  params: URLSearchParams,
   onDetails: (game: GameItem) => void,
-): HTMLElement {
-  const categories = (categoriesData as CategoriesResponse).data;
+): LibraryPage {
+  const state = readLibraryState(params);
+  const controller = new AbortController();
 
-  let activeCategory = categories.find((category) => category.isDefault)?.slug ?? 'all';
-
-  let activeSort: SortOption['value'] = 'rating-desc';
-  let page = 1;
-
-  /*
-   * Every game opened from Library uses Tukoni:
-   * Forest Keepers in the details modal.
-   */
-  const tukoniGame = games.find((game) => game.slug === 'tukoni-forest-keepers');
+  function goTo(next: LibraryUrlState, options: { replace?: boolean } = {}): void {
+    writeLibraryState(next, options);
+  }
 
   const filterDialog = createFilterDialog(
-    () => activeSort,
-    (value) => {
-      activeSort = value;
-      page = 1;
-      update();
-    },
+    () => state.sort,
+    (value) => goTo({ ...state, sort: value, page: DEFAULT_LIBRARY_STATE.page }),
   );
 
   const section = el('section', {
@@ -443,86 +450,89 @@ export function createLibraryPage(
     ],
   );
 
-  container.append(filtersRow);
+  // Swapped between a skeleton, an error banner, and the real grid +
+  // pagination while `load()` below runs.
+  const contentSlot = el('div', { className: 'library__content-slot' });
 
-  const grid = el('ul', {
-    className: 'library__grid',
-    attrs: {
-      'aria-label': 'Games list',
-    },
-  });
-
-  const paginationSlot = el('div', {
-    className: 'library__pagination-wrap',
-  });
-
-  container.append(grid, paginationSlot);
-
+  container.append(filtersRow, contentSlot);
   section.append(container);
 
-  function renderChips(): void {
+  function renderChips(categories: CategoryDto[]): void {
     chipsSlot.replaceChildren(
-      createCategoryChips(categories, activeCategory, (slug) => {
-        if (slug === activeCategory) {
+      createCategoryChips(categories, state.category, (slug) => {
+        if (slug === state.category) {
           return;
         }
-
-        activeCategory = slug;
-        page = 1;
-
-        renderChips();
-        update();
+        goTo({ ...state, category: slug, page: DEFAULT_LIBRARY_STATE.page });
       }),
     );
   }
 
-  function update(): void {
-    const filtered =
-      activeCategory === 'all'
-        ? [...games]
-        : games.filter((game) => game.category === activeCategory);
+  function renderResults(games: GameItem[], totalPages: number, disabledPagination: boolean): void {
+    const grid = el(
+      'ul',
+      { className: 'library__grid', attrs: { 'aria-label': 'Games list' } },
+      games.map((game) => createGameCard(game, () => onDetails(game))),
+    );
 
-    filtered.sort((a, b) => {
-      switch (activeSort) {
-        case 'rating-asc':
-          return a.rating - b.rating;
+    const pagination = createPagination(
+      state.page,
+      totalPages,
+      (nextPage) => goTo({ ...state, page: nextPage }),
+      disabledPagination,
+    );
 
-        case 'name-asc':
-          return a.name.localeCompare(b.name);
+    contentSlot.replaceChildren(
+      games.length === 0
+        ? el('div', { className: 'library__empty' }, [createEmptyState(), pagination])
+        : el('div', { className: 'library__results' }, [grid, pagination]),
+    );
+  }
 
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
+  async function load(): Promise<void> {
+    contentSlot.setAttribute('aria-busy', 'true');
+    contentSlot.replaceChildren(createSkeleton('cards'));
 
-        case 'rating-desc':
-        default:
-          return b.rating - a.rating;
+    try {
+      const [categoriesResponse, gamesResponse] = await Promise.all([
+        apiService.getCategories(controller.signal),
+        apiService.getGames(
+          { category: state.category, sort: state.sort, page: state.page, limit: PAGE_SIZE },
+          controller.signal,
+        ),
+      ]);
+
+      contentSlot.setAttribute('aria-busy', 'false');
+      renderChips(categoriesResponse.data);
+
+      const { data, meta } = gamesResponse;
+      const totalPages = meta?.totalPages ?? 1;
+
+      // The requested page is past the last real one for this filter — land
+      // back on page 1 instead of showing a spuriously "empty" result.
+      if (
+        data.length === 0 &&
+        (meta?.total ?? 0) > 0 &&
+        state.page !== DEFAULT_LIBRARY_STATE.page
+      ) {
+        goTo({ ...state, page: DEFAULT_LIBRARY_STATE.page }, { replace: true });
+        return;
       }
-    });
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-
-    if (page > totalPages) {
-      page = totalPages;
+      renderResults(data.map(toGameItem), totalPages, data.length === 0);
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      contentSlot.setAttribute('aria-busy', 'false');
+      contentSlot.replaceChildren(createErrorBanner(getErrorMessage(error), () => void load()));
     }
-
-    const start = (page - 1) * PAGE_SIZE;
-
-    const pageItems = filtered.slice(start, start + PAGE_SIZE);
-
-    grid.replaceChildren(
-      ...pageItems.map((game) => createGameCard(game, () => onDetails(tukoniGame ?? game))),
-    );
-
-    paginationSlot.replaceChildren(
-      createPagination(page, totalPages, (nextPage) => {
-        page = nextPage;
-        update();
-      }),
-    );
   }
 
-  renderChips();
-  update();
+  void load();
 
-  return section;
+  return {
+    element: section,
+    destroy: () => controller.abort(),
+  };
 }
