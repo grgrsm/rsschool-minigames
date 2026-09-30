@@ -1,11 +1,22 @@
+import { apiService, isAbortError } from '@/api/apiService';
 import type { GameCategory, GameItem } from '@/types/game';
+import { createEmptyState } from '@/components/feedback/empty-state';
+import { createErrorBanner, getErrorMessage } from '@/components/feedback/error-banner';
+import { createSkeleton } from '@/components/feedback/skeleton';
 import { closeGameModal, openGameModal } from '@/router';
+import type { CommentDto } from '@/types/api';
 import { el, formatCount } from '@/utils/dom';
 import { icons } from '@/utils/icons';
+import { formatTimeAgo } from '@/utils/timeAgo';
 
 export interface GameDetailsDialogApi {
   element: HTMLDialogElement;
+  /** Opens the dialog immediately (pushing `?game=<slug>`) and shows a loading skeleton. */
+  openLoading: (slug: string) => void;
+  /** Fills in the fetched game and starts loading its comments. */
   open: (game: GameItem) => void;
+  /** Replaces the dialog's content with an error banner + Retry, without closing it. */
+  showError: (message: string, onRetry: () => void) => void;
   /** Closes the dialog without touching the URL — used when the URL already changed (popstate). */
   close: () => void;
 }
@@ -36,33 +47,6 @@ const TOP_RECORDS: TopRecord[] = [
   { medal: '🥉', name: 'HerbalistPath', score: '308,900 pts', timeAgo: '1 week ago' },
 ];
 
-const SEED_COMMENTS: SeedComment[] = [
-  {
-    avatarIndex: 3,
-    initial: 'F',
-    name: 'ForestDweller',
-    timeAgo: '3 hours ago',
-    text: "The hand-drawn art is absolutely magical 🍄 Every location feels like a page from a children's storybook. The mushroom village made me cry happy tears!",
-    likes: 12,
-  },
-  {
-    avatarIndex: 2,
-    initial: 'H',
-    name: 'HerbalTeaLover',
-    timeAgo: '1 day ago',
-    text: 'Perfect cozy evening game — brew a cup of chamomile, wrap in a blanket and help the little one prepare for winter. The puzzles are gentle but satisfying.',
-    likes: 5,
-  },
-  {
-    avatarIndex: 1,
-    initial: 'C',
-    name: 'CottageCoreMia',
-    timeAgo: '3 days ago',
-    text: 'I want to live inside this game forever 🌿 The NPCs are so charming, the recipes are real, and the atmosphere is pure warmth and calm.',
-    likes: 8,
-  },
-];
-
 function formatCategoryLabel(category: GameCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
@@ -87,6 +71,18 @@ function createRecordItem(record: TopRecord): HTMLElement {
       el('span', { className: 'game-details__record-time', text: record.timeAgo }),
     ]),
   ]);
+}
+
+/** The API doesn't provide a like count for comments, so real comments always show 0. */
+function toDisplayComment(dto: CommentDto, index: number): SeedComment {
+  return {
+    avatarIndex: ((index % 3) + 1) as 1 | 2 | 3,
+    initial: dto.author.charAt(0).toUpperCase() || '?',
+    name: dto.author,
+    timeAgo: formatTimeAgo(dto.createdAt),
+    text: dto.text,
+    likes: 0,
+  };
 }
 
 function createCommentItem(comment: SeedComment): HTMLElement {
@@ -233,38 +229,80 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
     commentInput,
     commentSubmit,
   ]);
-  const commentsList = el(
-    'ul',
-    { className: 'game-details__comments-list' },
-    SEED_COMMENTS.map(createCommentItem),
-  );
+  // Swapped between a skeleton, an error banner and the real `<ul>` of comments
+  // as `loadComments` below goes through its lifecycle.
+  const commentsSlot = el('div', { className: 'game-details__comments-slot' });
   const commentsTitle = el('h3', {
     className: 'game-details__section-title game-details__section-title--plain',
-    text: `Comments (${SEED_COMMENTS.length})`,
+    text: 'Comments',
   });
   const comments = el(
     'section',
     { className: 'game-details__comments', attrs: { 'aria-label': 'Comments' } },
-    [commentsTitle, commentForm, commentsList],
+    [commentsTitle, commentForm, commentsSlot],
   );
 
+  // Read-only per Story 3 — posting isn't backed by an endpoint, this only
+  // prepends locally to whatever list is currently rendered (a no-op while
+  // the real comments are still loading or failed to load).
   commentForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const text = commentInput.value.trim();
-    if (!text) return;
+    const list = commentsSlot.querySelector<HTMLUListElement>('.game-details__comments-list');
+    if (!text || !list) return;
     const newComment = createCommentItem({
       avatarIndex: 2,
       initial: 'U',
       name: 'You',
-      timeAgo: 'Just now',
+      timeAgo: 'just now',
       text,
       likes: 0,
     });
-    commentsList.prepend(newComment);
+    list.prepend(newComment);
     commentInput.value = '';
-    commentsTitle.textContent = `Comments (${commentsList.children.length})`;
+    commentsTitle.textContent = `Comments (${list.children.length})`;
   });
 
+  let commentsController: AbortController | null = null;
+
+  async function loadComments(slug: string): Promise<void> {
+    commentsController?.abort();
+    const controller = new AbortController();
+    commentsController = controller;
+
+    commentsSlot.setAttribute('aria-busy', 'true');
+    commentsSlot.replaceChildren(createSkeleton('leaderboard', 3));
+
+    try {
+      const { data } = await apiService.getGameComments(
+        slug,
+        { limit: 3, sort: 'newest' },
+        controller.signal,
+      );
+      commentsSlot.setAttribute('aria-busy', 'false');
+      commentsTitle.textContent = `Comments (${data.length})`;
+      commentsSlot.replaceChildren(
+        data.length === 0
+          ? createEmptyState('No comments yet')
+          : el(
+              'ul',
+              { className: 'game-details__comments-list' },
+              data.map((comment, index) => createCommentItem(toDisplayComment(comment, index))),
+            ),
+      );
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      commentsSlot.setAttribute('aria-busy', 'false');
+      commentsSlot.replaceChildren(
+        createErrorBanner(getErrorMessage(error), () => void loadComments(slug)),
+      );
+    }
+  }
+
+  // Holds [cover, body] so the whole thing can be swapped for a loading
+  // skeleton or an error banner while the game itself is being fetched.
   const body = el('div', { className: 'game-details__body' }, [
     header,
     description,
@@ -273,9 +311,15 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
     records,
     comments,
   ]);
-  const card = el('div', { className: 'game-details__card' }, [cover, body]);
+  const contentSlot = el('div', { className: 'game-details__content-slot' });
+  const card = el('div', { className: 'game-details__card' }, [contentSlot]);
   dialog.append(card);
   document.body.append(dialog);
+
+  function showLoadedContent(): void {
+    contentSlot.setAttribute('aria-busy', 'false');
+    contentSlot.replaceChildren(cover, body);
+  }
 
   closeBtn.addEventListener('click', () => closeGameModal());
   dialog.addEventListener('click', (event) => {
@@ -290,10 +334,26 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
   });
   dialog.addEventListener('close', () => {
     document.body.classList.remove('no-scroll');
+    commentsController?.abort();
   });
 
   const api: GameDetailsDialogApi = {
     element: dialog,
+    openLoading: (slug: string) => {
+      title.textContent = 'Loading…';
+      contentSlot.setAttribute('aria-busy', 'true');
+      contentSlot.replaceChildren(createSkeleton('modal'));
+
+      document.body.classList.add('no-scroll');
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+      openGameModal(slug);
+    },
+    showError: (message: string, onRetry: () => void) => {
+      contentSlot.setAttribute('aria-busy', 'false');
+      contentSlot.replaceChildren(createErrorBanner(message, onRetry));
+    },
     open: (game: GameItem) => {
       coverImage.src = game.cardImage;
       coverImage.alt = game.name;
@@ -308,14 +368,9 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
       favoriteBtn.setAttribute('aria-pressed', 'false');
       favoriteBtn.classList.remove('is-active');
       favoriteLabel.textContent = 'Add to Favorites';
-      commentsTitle.textContent = `Comments (${SEED_COMMENTS.length})`;
-      commentsList.replaceChildren(...SEED_COMMENTS.map(createCommentItem));
 
-      document.body.classList.add('no-scroll');
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-      openGameModal(game.slug);
+      showLoadedContent();
+      void loadComments(game.slug);
     },
     close: () => {
       if (dialog.open) {

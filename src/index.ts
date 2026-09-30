@@ -1,7 +1,8 @@
 import './styles/main.scss';
 
-import type { GameItem, GamesResponse } from '@/types/game';
-import type { LeaderboardResponse } from '@/types/leaderboard';
+import { ApiError, apiService, isAbortError } from '@/api/apiService';
+import { toGameItem } from '@/api/mappers';
+import type { GameItem } from '@/types/game';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { createFooter } from '@/components/footer/footer';
@@ -13,9 +14,6 @@ import { createNotFoundPage } from '@/pages/not-found/not-found';
 import { getGameSlug, getLocation, initRouter, subscribe, updateActiveNavLinks } from '@/router';
 import type { RouteLocation } from '@/router';
 import { sessionStore } from '@/state/session-store';
-
-import gamesData from './mocks/games.json';
-import leaderboardData from './mocks/leaderboard.json';
 
 function getAppRoot(): HTMLElement {
   const root = document.getElementById('app');
@@ -43,20 +41,14 @@ function mountApp(): void {
     onBurgerClick: () => burgerMenu.open(),
   });
 
-  const games = (gamesData as GamesResponse).data;
-  const players = (leaderboardData as LeaderboardResponse).data;
-
   const main = document.createElement('main');
   root.append(header, burgerMenu.element, main, createFooter());
 
   let cleanupCurrentRoute: (() => void) | null = null;
   let currentGameSlug: string | null = null;
+  let gameModalController: AbortController | null = null;
 
   const onDetails = (game: GameItem): void => gameDetailsDialog.open(game);
-
-  function findGameBySlug(slug: string): GameItem | undefined {
-    return games.find((game) => game.slug === slug);
-  }
 
   /** Deep link / Back-Forward for `?game=<slug>`, independent from which page is under it. */
   function syncGameModal(params: URLSearchParams): void {
@@ -66,20 +58,46 @@ function mountApp(): void {
       return;
     }
     currentGameSlug = slug;
+    gameModalController?.abort();
 
     if (slug === null) {
       gameDetailsDialog.close();
       return;
     }
 
-    const game = findGameBySlug(slug);
-    if (game) {
-      gameDetailsDialog.open(game);
-    } else {
-      // Unknown slug: drop the param rather than show a broken modal.
-      currentGameSlug = null;
-      history.replaceState(history.state, '', location.pathname);
-    }
+    const controller = new AbortController();
+    gameModalController = controller;
+
+    gameDetailsDialog.openLoading(slug);
+
+    apiService
+      .getGameBySlug(slug, controller.signal)
+      .then((dto) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        gameDetailsDialog.open(toGameItem(dto));
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.isNotFound) {
+          // Unknown slug: drop the param rather than leave a broken modal open.
+          currentGameSlug = null;
+          gameDetailsDialog.close();
+          const url = new URL(location.href);
+          url.searchParams.delete('game');
+          history.replaceState(history.state, '', `${url.pathname}${url.search}`);
+          return;
+        }
+
+        gameDetailsDialog.showError(
+          'Failed to load this game.',
+          () => void syncGameModal(new URLSearchParams(location.search)),
+        );
+      });
   }
 
   function renderRoute({ route, params }: RouteLocation): void {
@@ -87,9 +105,11 @@ function mountApp(): void {
     cleanupCurrentRoute = null;
 
     if (route === 'library') {
-      main.replaceChildren(createLibraryPage(games, onDetails));
+      const library = createLibraryPage(params, onDetails);
+      main.replaceChildren(library.element);
+      cleanupCurrentRoute = library.destroy;
     } else if (route === 'home') {
-      const home = createHomeMain(games, players, onDetails);
+      const home = createHomeMain(onDetails);
       main.replaceChildren(home.element);
       cleanupCurrentRoute = home.destroy;
     } else {
