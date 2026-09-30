@@ -1,5 +1,7 @@
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
+import { getPublicUrl } from '@/utils/public-url';
+import { routeHref } from '@/router';
 
 interface FooterLinkColumn {
   title: string;
@@ -28,10 +30,10 @@ function createColumn(column: FooterLinkColumn): HTMLElement {
 
 export function createFooter(): HTMLElement {
   const brand = el('div', { className: 'footer__brand' }, [
-    el('a', { className: 'footer__logo', attrs: { href: '#home' } }, [
+    el('a', { className: 'footer__logo', attrs: { href: routeHref('home') } }, [
       el('img', {
         className: 'footer__logo-icon',
-        attrs: { src: 'assets/images/logo.png', alt: '', width: 28, height: 28 },
+        attrs: { src: getPublicUrl('assets/images/logo.png'), alt: '', width: 28, height: 28 },
       }),
       el('span', { text: 'MiniGames' }),
     ]),
@@ -63,48 +65,54 @@ export function createFooter(): HTMLElement {
 
   const topRow = el('div', { className: 'footer__top' }, [brand, linksRow]);
 
-  const rsBadge = el('a', {
-  className: 'footer__badge',
-  attrs: {
-    href: 'https://wearecommunity.io/events/js-fe-short-track-2026q3',
-    target: '_blank',
-    rel: 'noopener noreferrer',
-  },
-  }, [
-    el('img', {
-      className: 'footer__badge-icon',
+  const rsBadge = el(
+    'a',
+    {
+      className: 'footer__badge',
       attrs: {
-        src: 'assets/images/rs-logo.png',
-        alt: '',
-        width: 14,
-        height: 14,
+        href: 'https://wearecommunity.io/events/js-fe-short-track-2026q3',
+        target: '_blank',
+        rel: 'noopener noreferrer',
       },
-    }),
-    el('span', { text: 'RS School' }),
-  ]);
+    },
+    [
+      el('img', {
+        className: 'footer__badge-icon',
+        attrs: {
+          src: getPublicUrl('assets/images/rs-logo.png'),
+          alt: '',
+          width: 14,
+          height: 14,
+        },
+      }),
+      el('span', { text: 'RS School' }),
+    ],
+  );
 
-  const studentHandle = el('a', {
-    className: 'footer__student',
-    attrs: {
-      href: 'https://github.com/grgrsm',
-      target: '_blank',
-      rel: 'noopener noreferrer',
-    }, 
-  }, 
-  
-  [
- el('img', {
-      className: 'footer__badge-icon',
+  const studentHandle = el(
+    'a',
+    {
+      className: 'footer__student',
       attrs: {
-        src: 'assets/images/student-icon.png',
-        alt: '',
-        width: 14,
-        height: 14,
+        href: 'https://github.com/grgrsm',
+        target: '_blank',
+        rel: 'noopener noreferrer',
       },
-    }),
-    el('span', { text: '@student-nickname' }),
-  ]);
+    },
 
+    [
+      el('img', {
+        className: 'footer__badge-icon',
+        attrs: {
+          src: getPublicUrl('assets/images/student-icon.png'),
+          alt: '',
+          width: 14,
+          height: 14,
+        },
+      }),
+      el('span', { text: '@student-nickname' }),
+    ],
+  );
 
   const bottomRow = el('div', { className: 'footer__bottom' }, [
     el('p', { text: `\u00A9 ${new Date().getFullYear()} MiniGames. All rights reserved.` }),

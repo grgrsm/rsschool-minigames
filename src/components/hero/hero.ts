@@ -1,4 +1,5 @@
 import { el } from '@/utils/dom';
+import { routeHref } from '@/router';
 
 export function createHero(): HTMLElement {
   const section = el('section', {
@@ -27,7 +28,7 @@ export function createHero(): HTMLElement {
     }),
     el('a', {
       className: 'hero__cta',
-      attrs: { href: '#library' },
+      attrs: { href: routeHref('library') },
       text: 'Browse Library',
     }),
   ]);
