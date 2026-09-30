@@ -14,12 +14,3 @@ export interface GameItem {
   players: GamePlayers;
   duration: string;
 }
-
-export interface GamesResponse {
-  data: GameItem[];
-  meta: {
-    totalItems: number;
-    description: string;
-    featuredCount: number;
-  };
-}
