@@ -21,7 +21,7 @@ export interface ApiResponse<T> {
 /* --------------------------------- Query params -------------------------------- */
 
 export type GamesSort = 'rating-desc' | 'rating-asc' | 'name-asc' | 'name-desc';
-export type CommentsSort = 'newest';
+export type CommentsSort = 'newest' | 'oldest';
 
 export const DEFAULT_GAMES_SORT: GamesSort = 'rating-desc';
 
@@ -62,9 +62,40 @@ export interface GameDto {
   duration: string;
 }
 
-/** `GET /games/{gameSlug}` — TODO: align extra fields with Swagger. */
-export interface GameDetailsDto extends GameDto {
-  description?: string;
+/** Nested under `GameDetailsDto.specs` — confirmed against the live `GET /games/{gameSlug}`. */
+export interface GameSpecsDto {
+  genre: string;
+  players: string;
+  duration: string;
+  price: string;
+}
+
+/** One entry of `GameDetailsDto.topRecords` — real per-game leaderboard data (not a mock). */
+export interface TopRecordDto {
+  position: number;
+  playerName: string;
+  score: number;
+  /** ISO 8601 date, fed into `formatTimeAgo`. */
+  achievedAt: string;
+}
+
+/**
+ * `GET /games/{gameSlug}` — a materially different shape from the list endpoint's
+ * `GameDto`: no `category`/`cardImage`/`shortDescription`, instead `heroImage`,
+ * `fullDescription`, and `specs.{genre,players,duration,price}`. `isLikedByCurrentUser`
+ * only reflects something real when the (optional) `userEmail` query param is sent —
+ * out of scope for Story 3 (authenticated features are Story 4), so it's not requested.
+ */
+export interface GameDetailsDto {
+  slug: string;
+  name: string;
+  heroImage: string;
+  rating: number;
+  likesCount: number;
+  isLikedByCurrentUser?: boolean;
+  fullDescription: string;
+  specs: GameSpecsDto;
+  topRecords: TopRecordDto[];
 }
 
 export interface LeaderboardPlayerDto {
@@ -77,13 +108,26 @@ export interface LeaderboardPlayerDto {
   favoriteGameName: string;
 }
 
-/** `GET /games/{gameSlug}/comments` — TODO: align fields with Swagger. */
+/** `GET /games/{gameSlug}/comments` — confirmed against the live Swagger example. */
 export interface CommentDto {
-  id: string;
-  author: string;
+  commentId: string;
+  authorName: string;
   text: string;
+  likesCount: number;
+  isLikedByCurrentUser?: boolean;
   /** ISO 8601 date, fed into `formatTimeAgo`. */
   createdAt: string;
+}
+
+/**
+ * Not the generic `PaginationMeta` — per the Swagger description, `totalComments`
+ * is always the full count for the game even when `limit` trims `data`, and that's
+ * the number the "Comments (N)" heading should show (not `data.length`).
+ */
+export interface CommentsMeta {
+  totalComments: number;
+  returnedCount: number;
+  sort?: string;
 }
 
 /* ------------------------------- Typed responses ------------------------------- */
@@ -91,4 +135,7 @@ export interface CommentDto {
 export type GamesApiResponse = ApiResponse<GameDto[]>;
 export type CategoriesApiResponse = ApiResponse<CategoryDto[]>;
 export type LeaderboardApiResponse = ApiResponse<LeaderboardPlayerDto[]>;
-export type CommentsApiResponse = ApiResponse<CommentDto[]>;
+export interface CommentsApiResponse {
+  data: CommentDto[];
+  meta: CommentsMeta;
+}
