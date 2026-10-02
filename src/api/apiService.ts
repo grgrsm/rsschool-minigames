@@ -1,4 +1,5 @@
 import type {
+  ApiResponse,
   CategoriesApiResponse,
   CommentsApiResponse,
   CommentsQuery,
@@ -154,8 +155,14 @@ export const apiService = {
   },
 
   /** Game details modal. */
-  getGameBySlug(gameSlug: string, signal?: AbortSignal): Promise<GameDetailsDto> {
-    return request<GameDetailsDto>(`/games/${encodeURIComponent(gameSlug)}`, undefined, signal);
+  /** Wrapped in `{ data }` just like the collection endpoints — unwrapped here. */
+  async getGameBySlug(gameSlug: string, signal?: AbortSignal): Promise<GameDetailsDto> {
+    const response = await request<ApiResponse<GameDetailsDto>>(
+      `/games/${encodeURIComponent(gameSlug)}`,
+      undefined,
+      signal,
+    );
+    return response.data;
   },
 
   /** Read-only comments preview (latest 3 by default). */
