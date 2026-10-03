@@ -6,6 +6,8 @@
  * The site is served under Vite's `base` (e.g. `/rsschool-minigames/`), so every path the
  * rest of the app works with is base-less (`/library`) and converted only at the boundary.
  */
+import type { AuthTab } from '@/types/auth';
+
 export type RouteName = 'home' | 'library' | 'not-found';
 export type KnownRouteName = Exclude<RouteName, 'not-found'>;
 
@@ -21,6 +23,7 @@ export interface NavigateOptions {
 
 interface HistoryState {
   gameModal?: boolean;
+  authModal?: boolean;
 }
 
 type Listener = (location: RouteLocation) => void;
@@ -187,6 +190,45 @@ export function closeGameModal(): void {
   }
 
   updateSearchParams({ [GAME_PARAM]: null }, { replace: true });
+}
+
+/* --------------------------------- Auth modal URL --------------------------------- */
+
+export const AUTH_PARAM = 'auth';
+
+const AUTH_TABS: readonly AuthTab[] = ['login', 'register'];
+
+function isAuthTab(value: string): value is AuthTab {
+  return (AUTH_TABS as readonly string[]).includes(value);
+}
+
+export function getAuthTab(params: URLSearchParams): AuthTab | null {
+  const tab = params.get(AUTH_PARAM);
+  return tab && isAuthTab(tab) ? tab : null;
+}
+
+/** Pushes `?auth=login` / `?auth=register`, so the browser Back button closes the modal. */
+export function openAuthModal(tab: AuthTab): void {
+  updateSearchParams({ [AUTH_PARAM]: tab }, { state: { authModal: true } });
+}
+
+/**
+ * Removes `auth` from the URL. If this modal was opened by us, step back in history
+ * (no duplicate entries); if it came from a deep link, just rewrite the URL in place.
+ */
+export function closeAuthModal(): void {
+  if (getAuthTab(new URLSearchParams(window.location.search)) === null) {
+    return;
+  }
+
+  const state: unknown = window.history.state;
+
+  if (isHistoryState(state) && state.authModal) {
+    window.history.back();
+    return;
+  }
+
+  updateSearchParams({ [AUTH_PARAM]: null }, { replace: true });
 }
 
 /* ------------------------------------ Links -------------------------------------- */
