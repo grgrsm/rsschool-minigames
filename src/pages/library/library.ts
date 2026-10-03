@@ -167,12 +167,46 @@ function createSortIndicator(onClick: () => void): HTMLElement {
  * "Data Not Found" empty state, where the spec calls for pagination pinned
  * to page 1 with switching blocked.
  */
+// Story 2 layout spec: at most 4 page-number buttons on desktop/tablet, 3 on mobile;
+// the visible window follows the current page and re-centers when the viewport
+// crosses the breakpoint.
+const PAGINATION_MOBILE_QUERY = window.matchMedia('(max-width: 768px)');
+const PAGINATION_WINDOW_DESKTOP = 4;
+const PAGINATION_WINDOW_MOBILE = 3;
+
+/** Consecutive page numbers to show, sized by viewport and centered on `page`. */
+function getVisiblePageWindow(page: number, totalPages: number): number[] {
+  const windowSize = PAGINATION_MOBILE_QUERY.matches
+    ? PAGINATION_WINDOW_MOBILE
+    : PAGINATION_WINDOW_DESKTOP;
+
+  if (totalPages <= windowSize) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const maxStart = totalPages - windowSize + 1;
+  const start = Math.min(Math.max(page - Math.floor((windowSize - 1) / 2), 1), maxStart);
+
+  return Array.from({ length: windowSize }, (_, index) => start + index);
+}
+
+export interface PaginationControl {
+  element: HTMLElement;
+  /** Removes the resize/breakpoint listener — call when this control is discarded. */
+  destroy: () => void;
+}
+
+/**
+ * `disabled` forces every control off regardless of position — used for the
+ * "Data Not Found" empty state, where the spec calls for pagination pinned
+ * to page 1 with switching blocked.
+ */
 function createPagination(
   page: number,
   totalPages: number,
   onChange: (page: number) => void,
   disabled = false,
-): HTMLElement {
+): PaginationControl {
   const nav = el('nav', {
     className: 'library-pagination',
     attrs: {
@@ -192,32 +226,6 @@ function createPagination(
 
   prevBtn.addEventListener('click', () => onChange(page - 1));
 
-  nav.append(prevBtn);
-
-  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
-    const isActive = pageNumber === page;
-
-    const attrs: Record<string, string | number | boolean> = {
-      type: 'button',
-      'aria-label': `Page ${pageNumber}`,
-      disabled,
-    };
-
-    if (isActive) {
-      attrs['aria-current'] = 'page';
-    }
-
-    const pageBtn = el('button', {
-      className: `library-page-btn${isActive ? ' library-page-btn--active' : ''}`,
-      attrs,
-      text: String(pageNumber),
-    });
-
-    pageBtn.addEventListener('click', () => onChange(pageNumber));
-
-    nav.append(pageBtn);
-  }
-
   const nextBtn = el('button', {
     className: 'library-page-btn library-page-btn--nav',
     attrs: {
@@ -230,9 +238,45 @@ function createPagination(
 
   nextBtn.addEventListener('click', () => onChange(page + 1));
 
-  nav.append(nextBtn);
+  const pageButtons = el('span', { className: 'library-pagination__pages' });
 
-  return nav;
+  function renderPageButtons(): void {
+    pageButtons.replaceChildren(
+      ...getVisiblePageWindow(page, totalPages).map((pageNumber) => {
+        const isActive = pageNumber === page;
+
+        const attrs: Record<string, string | number | boolean> = {
+          type: 'button',
+          'aria-label': `Page ${pageNumber}`,
+          disabled,
+        };
+
+        if (isActive) {
+          attrs['aria-current'] = 'page';
+        }
+
+        const pageBtn = el('button', {
+          className: `library-page-btn${isActive ? ' library-page-btn--active' : ''}`,
+          attrs,
+          text: String(pageNumber),
+        });
+
+        pageBtn.addEventListener('click', () => onChange(pageNumber));
+
+        return pageBtn;
+      }),
+    );
+  }
+
+  renderPageButtons();
+  PAGINATION_MOBILE_QUERY.addEventListener('change', renderPageButtons);
+
+  nav.append(prevBtn, pageButtons, nextBtn);
+
+  return {
+    element: nav,
+    destroy: () => PAGINATION_MOBILE_QUERY.removeEventListener('change', renderPageButtons),
+  };
 }
 
 interface SortOption {
@@ -386,7 +430,12 @@ export function createLibraryPage(
   onDetails: (game: GameItem) => void,
 ): LibraryPage {
   const state = readLibraryState(params);
+  // No `category` in the URL at all (first visit, not "explicitly chose All") means
+  // the active chip should be whichever the API marks `isDefault: true` — resolved
+  // once the categories response arrives, in `load()` below.
+  const hasExplicitCategory = params.has('category');
   const controller = new AbortController();
+  let paginationCleanup: (() => void) | null = null;
 
   function goTo(next: LibraryUrlState, options: { replace?: boolean } = {}): void {
     writeLibraryState(next, options);
@@ -475,17 +524,19 @@ export function createLibraryPage(
       games.map((game) => createGameCard(game, () => onDetails(game))),
     );
 
+    paginationCleanup?.();
     const pagination = createPagination(
       state.page,
       totalPages,
       (nextPage) => goTo({ ...state, page: nextPage }),
       disabledPagination,
     );
+    paginationCleanup = pagination.destroy;
 
     contentSlot.replaceChildren(
       games.length === 0
-        ? el('div', { className: 'library__empty' }, [createEmptyState(), pagination])
-        : el('div', { className: 'library__results' }, [grid, pagination]),
+        ? el('div', { className: 'library__empty' }, [createEmptyState(), pagination.element])
+        : el('div', { className: 'library__results' }, [grid, pagination.element]),
     );
   }
 
@@ -494,19 +545,28 @@ export function createLibraryPage(
     contentSlot.replaceChildren(createSkeleton('cards'));
 
     try {
-      const [categoriesResponse, gamesResponse] = await Promise.all([
-        apiService.getCategories(controller.signal),
-        apiService.getGames(
-          { category: state.category, sort: state.sort, page: state.page, limit: PAGE_SIZE },
-          controller.signal,
-        ),
-      ]);
+      // Categories are needed before the games request can be built when no category
+      // was given in the URL (the default category comes from this response), so this
+      // can't be a plain `Promise.all` the way the rest of this fetch is.
+      const categoriesResponse = await apiService.getCategories(controller.signal);
+      const categories = categoriesResponse.data;
+
+      if (!hasExplicitCategory) {
+        state.category = categories.find((category) => category.isDefault)?.slug ?? state.category;
+      }
+
+      const gamesResponse = await apiService.getGames(
+        { category: state.category, sort: state.sort, page: state.page, limit: PAGE_SIZE },
+        controller.signal,
+      );
 
       contentSlot.setAttribute('aria-busy', 'false');
-      renderChips(categoriesResponse.data);
+      renderChips(categories);
 
       const { data, meta } = gamesResponse;
-      const totalPages = meta?.totalPages ?? 1;
+      // Clamp to 1: an empty result (`totalPages: 0`) must still show page "1" and
+      // enabled-looking pagination chrome per the spec, not zero page buttons.
+      const totalPages = Math.max(1, meta?.totalPages ?? 1);
 
       // The requested page is past the last real one for this filter — land
       // back on page 1 instead of showing a spuriously "empty" result.
@@ -533,6 +593,9 @@ export function createLibraryPage(
 
   return {
     element: section,
-    destroy: () => controller.abort(),
+    destroy: () => {
+      controller.abort();
+      paginationCleanup?.();
+    },
   };
 }
