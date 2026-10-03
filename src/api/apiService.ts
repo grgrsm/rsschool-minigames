@@ -14,6 +14,8 @@ const API_BASE_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_API_URL;
 const REQUEST_TIMEOUT_MS = 10_000;
 const ALL_CATEGORIES_SLUG = 'all';
+/** No auth in Story 3 — see the doc comment on `getGameBySlug`. */
+const CURRENT_USER_EMAIL = '';
 
 /* ---------------------------------- Errors ---------------------------------- */
 
@@ -154,18 +156,26 @@ export const apiService = {
     );
   },
 
-  /** Game details modal. */
-  /** Wrapped in `{ data }` just like the collection endpoints — unwrapped here. */
+  /**
+   * Game details modal. Wrapped in `{ data }` just like the collection endpoints —
+   * unwrapped here.
+   *
+   * `userEmail` is sent empty: there's no auth yet in Story 3 (it's Story 4 scope), but
+   * the spec names it as the endpoint's personalization param, so the key stays present
+   * on every request rather than being silently omitted. Once real auth lands, replace
+   * `CURRENT_USER_EMAIL` with the signed-in user's email and `isLikedByCurrentUser` on
+   * the response will start reflecting it.
+   */
   async getGameBySlug(gameSlug: string, signal?: AbortSignal): Promise<GameDetailsDto> {
     const response = await request<ApiResponse<GameDetailsDto>>(
       `/games/${encodeURIComponent(gameSlug)}`,
-      undefined,
+      { userEmail: CURRENT_USER_EMAIL },
       signal,
     );
     return response.data;
   },
 
-  /** Read-only comments preview (latest 3 by default). */
+  /** Read-only comments preview (latest 3 by default). `userEmail` — see `getGameBySlug`. */
   getGameComments(
     gameSlug: string,
     { limit = 3, sort = 'newest' }: CommentsQuery = {},
@@ -173,7 +183,7 @@ export const apiService = {
   ): Promise<CommentsApiResponse> {
     return request<CommentsApiResponse>(
       `/games/${encodeURIComponent(gameSlug)}/comments`,
-      { limit, sort },
+      { limit, sort, userEmail: CURRENT_USER_EMAIL },
       signal,
     );
   },
