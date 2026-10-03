@@ -543,6 +543,14 @@ $card-height-tablet: 152px;
   gap: var(--size-2);
 }
 
+// Wraps just the page-number buttons so the prev/next arrows stay as direct
+// flex children while the visible page-button window can be swapped as a unit.
+.library-pagination__pages {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
 .library-page-btn {
   display: inline-flex;
   align-items: center;
