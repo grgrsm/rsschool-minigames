@@ -2,6 +2,7 @@ import './styles/main.scss';
 
 import { ApiError, apiService, isAbortError } from '@/api/apiService';
 import { toGameDetails } from '@/api/mappers';
+import type { AuthTab } from '@/types/auth';
 import type { GameItem } from '@/types/game';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
@@ -14,9 +15,11 @@ import { createHomeMain } from '@/pages/home/home';
 import { createLibraryPage } from '@/pages/library/library';
 import { createNotFoundPage } from '@/pages/not-found/not-found';
 import {
+  getAuthTab,
   getGameSlug,
   getLocation,
   initRouter,
+  openAuthModal,
   openGameModal,
   subscribe,
   updateActiveNavLinks,
@@ -38,14 +41,16 @@ function mountApp(): void {
   const authDialog = createAuthDialog();
   const gameDetailsDialog = createGameDetailsDialog();
 
+  // Same reasoning as `onDetails` below: go through the URL, not `authDialog.open()`
+  // directly, so `?auth=login`/`?auth=register` stays the single source of truth.
   const burgerMenu = createBurgerMenu({
-    onLoginClick: () => authDialog.open('login'),
-    onSignUpClick: () => authDialog.open('register'),
+    onLoginClick: () => openAuthModal('login'),
+    onSignUpClick: () => openAuthModal('register'),
     onLogOutClick: () => sessionStore.logOut(),
   });
 
   const header = createHeader({
-    onAuthClick: (tab) => authDialog.open(tab), // Открывает модалку с переданной вкладкой ('login' или 'register')
+    onAuthClick: (tab: AuthTab) => openAuthModal(tab),
     onLogOutClick: () => sessionStore.logOut(),
     onBurgerClick: () => burgerMenu.open(),
   });
@@ -56,6 +61,23 @@ function mountApp(): void {
   let cleanupCurrentRoute: (() => void) | null = null;
   let currentGameSlug: string | null = null;
   let gameModalController: AbortController | null = null;
+  let currentAuthTab: AuthTab | null = null;
+
+  /** Deep link / Back-Forward for `?auth=login|register`, independent from the active page. */
+  function syncAuthModal(params: URLSearchParams): void {
+    const tab = getAuthTab(params);
+
+    if (tab === currentAuthTab) {
+      return;
+    }
+    currentAuthTab = tab;
+
+    if (tab === null) {
+      authDialog.close();
+    } else {
+      authDialog.open(tab);
+    }
+  }
 
   // Always go through the URL rather than calling `gameDetailsDialog.open()` directly:
   // `openGameModal` is what actually shows the dialog (via `syncGameModal` below), and
@@ -140,6 +162,7 @@ function mountApp(): void {
 
     updateActiveNavLinks(route);
     syncGameModal(params);
+    syncAuthModal(params);
   }
 
   initRouter();
