@@ -1,6 +1,6 @@
 import { el } from '@/utils/dom';
 
-export type SnackbarVariant = 'info' | 'success' | 'error';
+export type SnackbarVariant = 'info' | 'success' | 'warning' | 'error';
 
 const DEFAULT_DURATION_MS = 4000;
 const MIN_DURATION_MS = 3000;
