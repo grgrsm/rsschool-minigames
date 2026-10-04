@@ -1,18 +1,15 @@
+import { apiService, isAbortError } from '@/api/apiService';
+import { toGameItem } from '@/api/mappers';
 import type { GameCategory, GameItem } from '@/types/game';
+import { createEmptyState } from '@/components/feedback/empty-state';
+import { createErrorBanner, getErrorMessage } from '@/components/feedback/error-banner';
+import { createSkeleton } from '@/components/feedback/skeleton';
+import { showSnackbar } from '@/components/feedback/snackbar';
+import type { CategoryDto, GamesSort } from '@/types/api';
+import { DEFAULT_LIBRARY_STATE, readLibraryState, writeLibraryState } from '@/utils/library-query';
+import type { LibraryUrlState } from '@/utils/library-query';
 import { el, formatCount } from '@/utils/dom';
 import { icons } from '@/utils/icons';
-
-import categoriesData from '@/mocks/categories.json';
-
-interface CategoryDef {
-  slug: string;
-  label: string;
-  isDefault: boolean;
-}
-
-interface CategoriesResponse {
-  data: CategoryDef[];
-}
 
 const PAGE_SIZE = 6;
 
@@ -103,7 +100,7 @@ function createGameCard(game: GameItem, onDetails: (game: GameItem) => void): HT
 }
 
 function createCategoryChips(
-  categories: CategoryDef[],
+  categories: CategoryDto[],
   activeSlug: string,
   onSelect: (slug: string) => void,
 ): HTMLElement {
@@ -166,11 +163,51 @@ function createSortIndicator(onClick: () => void): HTMLElement {
   return button;
 }
 
+/**
+ * `disabled` forces every control off regardless of position — used for the
+ * "Data Not Found" empty state, where the spec calls for pagination pinned
+ * to page 1 with switching blocked.
+ */
+// Story 2 layout spec: at most 4 page-number buttons on desktop/tablet, 3 on mobile;
+// the visible window follows the current page and re-centers when the viewport
+// crosses the breakpoint.
+const PAGINATION_MOBILE_QUERY = window.matchMedia('(max-width: 768px)');
+const PAGINATION_WINDOW_DESKTOP = 4;
+const PAGINATION_WINDOW_MOBILE = 3;
+
+/** Consecutive page numbers to show, sized by viewport and centered on `page`. */
+function getVisiblePageWindow(page: number, totalPages: number): number[] {
+  const windowSize = PAGINATION_MOBILE_QUERY.matches
+    ? PAGINATION_WINDOW_MOBILE
+    : PAGINATION_WINDOW_DESKTOP;
+
+  if (totalPages <= windowSize) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const maxStart = totalPages - windowSize + 1;
+  const start = Math.min(Math.max(page - Math.floor((windowSize - 1) / 2), 1), maxStart);
+
+  return Array.from({ length: windowSize }, (_, index) => start + index);
+}
+
+export interface PaginationControl {
+  element: HTMLElement;
+  /** Removes the resize/breakpoint listener — call when this control is discarded. */
+  destroy: () => void;
+}
+
+/**
+ * `disabled` forces every control off regardless of position — used for the
+ * "Data Not Found" empty state, where the spec calls for pagination pinned
+ * to page 1 with switching blocked.
+ */
 function createPagination(
   page: number,
   totalPages: number,
   onChange: (page: number) => void,
-): HTMLElement {
+  disabled = false,
+): PaginationControl {
   const nav = el('nav', {
     className: 'library-pagination',
     attrs: {
@@ -183,57 +220,68 @@ function createPagination(
     attrs: {
       type: 'button',
       'aria-label': 'Previous page',
-      disabled: page === 1,
+      disabled: disabled || page === 1,
     },
     html: icons.arrowLeft,
   });
 
   prevBtn.addEventListener('click', () => onChange(page - 1));
 
-  nav.append(prevBtn);
-
-  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
-    const isActive = pageNumber === page;
-
-    const attrs: Record<string, string | number | boolean> = {
-      type: 'button',
-      'aria-label': `Page ${pageNumber}`,
-    };
-
-    if (isActive) {
-      attrs['aria-current'] = 'page';
-    }
-
-    const pageBtn = el('button', {
-      className: `library-page-btn${isActive ? ' library-page-btn--active' : ''}`,
-      attrs,
-      text: String(pageNumber),
-    });
-
-    pageBtn.addEventListener('click', () => onChange(pageNumber));
-
-    nav.append(pageBtn);
-  }
-
   const nextBtn = el('button', {
     className: 'library-page-btn library-page-btn--nav',
     attrs: {
       type: 'button',
       'aria-label': 'Next page',
-      disabled: page === totalPages,
+      disabled: disabled || page === totalPages,
     },
     html: icons.arrowRight,
   });
 
   nextBtn.addEventListener('click', () => onChange(page + 1));
 
-  nav.append(nextBtn);
+  const pageButtons = el('span', { className: 'library-pagination__pages' });
 
-  return nav;
+  function renderPageButtons(): void {
+    pageButtons.replaceChildren(
+      ...getVisiblePageWindow(page, totalPages).map((pageNumber) => {
+        const isActive = pageNumber === page;
+
+        const attrs: Record<string, string | number | boolean> = {
+          type: 'button',
+          'aria-label': `Page ${pageNumber}`,
+          disabled,
+        };
+
+        if (isActive) {
+          attrs['aria-current'] = 'page';
+        }
+
+        const pageBtn = el('button', {
+          className: `library-page-btn${isActive ? ' library-page-btn--active' : ''}`,
+          attrs,
+          text: String(pageNumber),
+        });
+
+        pageBtn.addEventListener('click', () => onChange(pageNumber));
+
+        return pageBtn;
+      }),
+    );
+  }
+
+  renderPageButtons();
+  PAGINATION_MOBILE_QUERY.addEventListener('change', renderPageButtons);
+
+  nav.append(prevBtn, pageButtons, nextBtn);
+
+  return {
+    element: nav,
+    destroy: () => PAGINATION_MOBILE_QUERY.removeEventListener('change', renderPageButtons),
+  };
 }
 
 interface SortOption {
-  value: 'rating-desc' | 'rating-asc' | 'name-asc' | 'name-desc';
+  value: GamesSort;
   label: string;
 }
 
@@ -364,30 +412,39 @@ function createFilterDialog(
   };
 }
 
+export interface LibraryPage {
+  element: HTMLElement;
+  /** Aborts the in-flight categories/games request, if any. */
+  destroy: () => void;
+}
+
+/**
+ * The Library route. The URL is the only state this page keeps — every
+ * filter/sort/page change goes through `writeLibraryState`, which updates
+ * the URL and lets the app's router fully remount this page with the new
+ * params (see `subscribe` in `src/index.ts`). That keeps deep links,
+ * Back/Forward and this page's own controls all driven by the same source
+ * of truth, per the SPA-router spec.
+ */
 export function createLibraryPage(
-  games: GameItem[],
+  params: URLSearchParams,
   onDetails: (game: GameItem) => void,
-): HTMLElement {
-  const categories = (categoriesData as CategoriesResponse).data;
+): LibraryPage {
+  const state = readLibraryState(params);
+  // No `category` in the URL at all (first visit, not "explicitly chose All") means
+  // the active chip should be whichever the API marks `isDefault: true` — resolved
+  // once the categories response arrives, in `load()` below.
+  const hasExplicitCategory = params.has('category');
+  const controller = new AbortController();
+  let paginationCleanup: (() => void) | null = null;
 
-  let activeCategory = categories.find((category) => category.isDefault)?.slug ?? 'all';
-
-  let activeSort: SortOption['value'] = 'rating-desc';
-  let page = 1;
-
-  /*
-   * Every game opened from Library uses Tukoni:
-   * Forest Keepers in the details modal.
-   */
-  const tukoniGame = games.find((game) => game.slug === 'tukoni-forest-keepers');
+  function goTo(next: LibraryUrlState, options: { replace?: boolean } = {}): void {
+    writeLibraryState(next, options);
+  }
 
   const filterDialog = createFilterDialog(
-    () => activeSort,
-    (value) => {
-      activeSort = value;
-      page = 1;
-      update();
-    },
+    () => state.sort,
+    (value) => goTo({ ...state, sort: value, page: DEFAULT_LIBRARY_STATE.page }),
   );
 
   const section = el('section', {
@@ -443,86 +500,106 @@ export function createLibraryPage(
     ],
   );
 
-  container.append(filtersRow);
+  // Swapped between a skeleton, an error banner, and the real grid +
+  // pagination while `load()` below runs.
+  const contentSlot = el('div', { className: 'library__content-slot' });
 
-  const grid = el('ul', {
-    className: 'library__grid',
-    attrs: {
-      'aria-label': 'Games list',
-    },
-  });
-
-  const paginationSlot = el('div', {
-    className: 'library__pagination-wrap',
-  });
-
-  container.append(grid, paginationSlot);
-
+  container.append(filtersRow, contentSlot);
   section.append(container);
 
-  function renderChips(): void {
+  function renderChips(categories: CategoryDto[]): void {
     chipsSlot.replaceChildren(
-      createCategoryChips(categories, activeCategory, (slug) => {
-        if (slug === activeCategory) {
+      createCategoryChips(categories, state.category, (slug) => {
+        if (slug === state.category) {
           return;
         }
-
-        activeCategory = slug;
-        page = 1;
-
-        renderChips();
-        update();
+        goTo({ ...state, category: slug, page: DEFAULT_LIBRARY_STATE.page });
       }),
     );
   }
 
-  function update(): void {
-    const filtered =
-      activeCategory === 'all'
-        ? [...games]
-        : games.filter((game) => game.category === activeCategory);
+  function renderResults(games: GameItem[], totalPages: number, disabledPagination: boolean): void {
+    const grid = el(
+      'ul',
+      { className: 'library__grid', attrs: { 'aria-label': 'Games list' } },
+      games.map((game) => createGameCard(game, () => onDetails(game))),
+    );
 
-    filtered.sort((a, b) => {
-      switch (activeSort) {
-        case 'rating-asc':
-          return a.rating - b.rating;
+    paginationCleanup?.();
+    const pagination = createPagination(
+      state.page,
+      totalPages,
+      (nextPage) => goTo({ ...state, page: nextPage }),
+      disabledPagination,
+    );
+    paginationCleanup = pagination.destroy;
 
-        case 'name-asc':
-          return a.name.localeCompare(b.name);
+    contentSlot.replaceChildren(
+      games.length === 0
+        ? el('div', { className: 'library__empty' }, [createEmptyState(), pagination.element])
+        : el('div', { className: 'library__results' }, [grid, pagination.element]),
+    );
+  }
 
-        case 'name-desc':
-          return b.name.localeCompare(a.name);
+  async function load(): Promise<void> {
+    contentSlot.setAttribute('aria-busy', 'true');
+    contentSlot.replaceChildren(createSkeleton('cards'));
 
-        case 'rating-desc':
-        default:
-          return b.rating - a.rating;
+    try {
+      // Categories are needed before the games request can be built when no category
+      // was given in the URL (the default category comes from this response), so this
+      // can't be a plain `Promise.all` the way the rest of this fetch is.
+      const categoriesResponse = await apiService.getCategories(controller.signal);
+      const categories = categoriesResponse.data;
+
+      if (!hasExplicitCategory) {
+        state.category = categories.find((category) => category.isDefault)?.slug ?? state.category;
       }
-    });
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      const gamesResponse = await apiService.getGames(
+        { category: state.category, sort: state.sort, page: state.page, limit: PAGE_SIZE },
+        controller.signal,
+      );
 
-    if (page > totalPages) {
-      page = totalPages;
+      contentSlot.setAttribute('aria-busy', 'false');
+      renderChips(categories);
+
+      const { data, meta } = gamesResponse;
+      // Clamp to 1: an empty result (`totalPages: 0`) must still show page "1" and
+      // enabled-looking pagination chrome per the spec, not zero page buttons.
+      const totalPages = Math.max(1, meta?.totalPages ?? 1);
+
+      // The requested page is past the last real one for this filter — land
+      // back on page 1 instead of showing a spuriously "empty" result. This is
+      // a silent navigation correction, so it's exactly the non-blocking,
+      // API-driven "warning" event the Snackbar is for.
+      if (
+        data.length === 0 &&
+        (meta?.total ?? 0) > 0 &&
+        state.page !== DEFAULT_LIBRARY_STATE.page
+      ) {
+        showSnackbar("That page doesn't exist — showing page 1 instead.", 'warning');
+        goTo({ ...state, page: DEFAULT_LIBRARY_STATE.page }, { replace: true });
+        return;
+      }
+
+      renderResults(data.map(toGameItem), totalPages, data.length === 0);
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      contentSlot.setAttribute('aria-busy', 'false');
+      contentSlot.replaceChildren(createErrorBanner(getErrorMessage(error), () => void load()));
     }
-
-    const start = (page - 1) * PAGE_SIZE;
-
-    const pageItems = filtered.slice(start, start + PAGE_SIZE);
-
-    grid.replaceChildren(
-      ...pageItems.map((game) => createGameCard(game, () => onDetails(tukoniGame ?? game))),
-    );
-
-    paginationSlot.replaceChildren(
-      createPagination(page, totalPages, (nextPage) => {
-        page = nextPage;
-        update();
-      }),
-    );
   }
 
-  renderChips();
-  update();
+  void load();
 
-  return section;
+  return {
+    element: section,
+    destroy: () => {
+      controller.abort();
+      paginationCleanup?.();
+    },
+  };
 }

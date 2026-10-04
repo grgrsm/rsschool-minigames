@@ -20,12 +20,25 @@
 @use '../components/footer/footer';
 @use '../components/auth-dialog/auth-dialog';
 @use '../components/game-details-dialog/game-details-dialog';
+@use '../components/feedback/feedback';
 @use '../pages/library/library';
+@use '../pages/not-found/not-found';
 
 .no-scroll {
   overflow: hidden;
 }
 
+// Sticky footer: #app (header + main + footer) fills at least the viewport
+// height, and main absorbs the remaining space — so a short page (404, an
+// empty Library result, etc.) still keeps the footer pinned to the bottom
+// instead of leaving a gap below it.
+#app {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
 main {
   display: block;
+  flex: 1 0 auto;
 }

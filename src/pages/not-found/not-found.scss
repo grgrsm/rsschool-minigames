@@ -1,0 +1,37 @@
+@use '../../styles/mixins' as *;
+
+.not-found {
+  @include section-container;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-2);
+  padding-block: var(--size-12);
+  text-align: center;
+
+  &__code {
+    margin: 0;
+    font-size: var(--font-display-large);
+    font-weight: var(--font-weight-extra-bold);
+    color: var(--color-tertiary);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-headline-large);
+    color: var(--color-on-primary);
+  }
+
+  &__text {
+    margin: 0;
+    font-size: var(--font-body-large);
+    color: var(--color-on-bg);
+  }
+
+  &__button {
+    @include button-primary;
+
+    margin-top: var(--size-2);
+  }
+}

@@ -1,0 +1,217 @@
+@use '../../styles/breakpoints' as *;
+@use '../../styles/mixins' as *;
+
+// ---------------------------------------------------------------------------
+// Skeleton loaders
+// ---------------------------------------------------------------------------
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  display: block;
+  border-radius: var(--size-1);
+  background: linear-gradient(
+    90deg,
+    var(--color-outline) 25%,
+    var(--color-surface-low) 50%,
+    var(--color-outline) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  &--image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  &--title {
+    width: 60%;
+    height: var(--size-3);
+  }
+
+  &--line {
+    width: 100%;
+    height: var(--size-2);
+  }
+
+  &--line-short {
+    width: 40%;
+    height: var(--size-2);
+  }
+
+  &--badge {
+    flex: none;
+    width: var(--size-4);
+    height: var(--size-3);
+  }
+
+  &--avatar {
+    flex: none;
+    width: var(--size-4);
+    height: var(--size-4);
+    border-radius: 50%;
+  }
+}
+
+.skeleton-group {
+  &--carousel,
+  &--cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--size-3);
+
+    @include tablet-down {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include small-mobile {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &--leaderboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2);
+  }
+}
+
+.skeleton-card,
+.skeleton-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+  padding: var(--size-2);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--size-2);
+  background-color: var(--color-white);
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  padding: var(--size-1) var(--size-2);
+}
+
+// ---------------------------------------------------------------------------
+// Error / Empty banner
+// ---------------------------------------------------------------------------
+
+.feedback-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-1);
+  padding: var(--size-4) var(--size-2);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--size-2);
+  background-color: var(--color-white);
+  color: var(--color-on-bg);
+  text-align: center;
+
+  &--error {
+    border-color: var(--color-error);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-headline-small);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-on-primary);
+  }
+
+  &__message {
+    margin: 0;
+    font-size: var(--font-body-medium);
+  }
+
+  &__retry {
+    @include button-primary;
+
+    margin-top: var(--size-1);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Snackbar
+// ---------------------------------------------------------------------------
+
+@keyframes snackbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--size-1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.snackbar-region {
+  position: fixed;
+  right: var(--size-3);
+  bottom: var(--size-3);
+  z-index: calc(var(--z-dialog) + 10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+  max-width: calc(100vw - var(--size-4));
+  pointer-events: none;
+
+  @include small-mobile {
+    right: var(--size-2);
+    bottom: var(--size-2);
+    left: var(--size-2);
+  }
+}
+
+.snackbar {
+  padding: var(--size-2) var(--size-3);
+  border: 2px solid var(--color-on-primary);
+  border-radius: var(--size-1);
+  background-color: var(--color-white);
+  box-shadow: 4px 4px 0 var(--color-on-primary);
+  color: var(--color-on-primary);
+  font-size: var(--font-body-small);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: snackbar-in 0.2s ease-out;
+
+  &--success {
+    background-color: var(--color-primary);
+  }
+
+  &--warning {
+    border-color: var(--color-tertiary);
+    color: var(--color-tertiary);
+  }
+
+  &--error {
+    border-color: var(--color-error);
+    color: var(--color-error);
+  }
+
+  &--leaving {
+    opacity: 0;
+    transition: opacity 0.2s ease-in;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

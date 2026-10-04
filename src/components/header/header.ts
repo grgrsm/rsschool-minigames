@@ -1,6 +1,8 @@
 import type { SessionState, AuthTab } from '@/types/auth';
 import { sessionStore } from '@/state/session-store';
 import { el } from '@/utils/dom';
+import { getPublicUrl } from '@/utils/public-url';
+import { routeHref } from '@/router';
 
 import { NAV_ITEMS } from './nav-links';
 
@@ -8,13 +10,6 @@ export interface HeaderCallbacks {
   onAuthClick: (tab: AuthTab) => void;
   onLogOutClick: () => void;
   onBurgerClick: () => void;
-}
-
-function getPublicUrl(path: string): string {
-  const base = import.meta.env.BASE_URL;
-  const cleanBase = base.endsWith('/') ? base : `${base}/`;
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  return `${cleanBase}${cleanPath}`;
 }
 
 function renderUserBadge(fullName: string, initials: string): HTMLElement {
@@ -85,7 +80,7 @@ export function createHeader(callbacks: HeaderCallbacks): HTMLElement {
   const header = el('header', { className: 'header', attrs: { id: 'home' } });
   const container = el('div', { className: 'header__container' });
 
-  const logo = el('a', { className: 'header__logo', attrs: { href: '#home' } }, [
+  const logo = el('a', { className: 'header__logo', attrs: { href: routeHref('home') } }, [
     el('img', {
       className: 'header__logo-icon',
       attrs: { src: getPublicUrl('assets/images/logo.png'), alt: '', width: 32, height: 32 },

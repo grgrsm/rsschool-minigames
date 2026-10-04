@@ -2,6 +2,8 @@ import type { SessionState } from '@/types/auth';
 import { sessionStore } from '@/state/session-store';
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
+import { getPublicUrl } from '@/utils/public-url';
+import { routeHref } from '@/router';
 
 import { NAV_ITEMS } from '../header/nav-links';
 
@@ -61,10 +63,10 @@ export function createBurgerMenu(callbacks: BurgerMenuCallbacks): BurgerMenuApi 
   });
 
   const header = el('div', { className: 'burger-menu__header' }, [
-    el('a', { className: 'burger-menu__logo', attrs: { href: '#home' } }, [
+    el('a', { className: 'burger-menu__logo', attrs: { href: routeHref('home') } }, [
       el('img', {
         className: 'burger-menu__logo-icon',
-        attrs: { src: 'assets/images/logo.png', alt: '', width: 28, height: 28 },
+        attrs: { src: getPublicUrl('assets/images/logo.png'), alt: '', width: 28, height: 28 },
       }),
       el('span', { text: 'MiniGames' }),
     ]),

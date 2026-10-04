@@ -1,4 +1,5 @@
 import { el } from '@/utils/dom';
+import { getPublicUrl } from '@/utils/public-url';
 
 export function createDevSection(): HTMLElement {
   const wrapper = el('div', { className: 'dev-section-wrapper' });
@@ -6,7 +7,7 @@ export function createDevSection(): HTMLElement {
   const illustration = el('div', { className: 'dev-section__illustration' }, [
     el('img', {
       className: 'dev-section__illustration-image',
-      attrs: { src: 'assets/images/dev-illustration.png', alt: '', loading: 'lazy' },
+      attrs: { src: getPublicUrl('assets/images/dev-illustration.png'), alt: '', loading: 'lazy' },
     }),
   ]);
 
@@ -19,14 +20,12 @@ export function createDevSection(): HTMLElement {
     el('button', { className: 'dev-section__cta', attrs: { type: 'button' } }, [
       el('span', { className: 'dev-section__cta-icon' }, [
         el('img', {
-          attrs: { src: 'assets/icons/upload.png', alt: '', width: 24, height: 24 },
+          attrs: { src: getPublicUrl('assets/icons/upload.png'), alt: '', width: 24, height: 24 },
         }),
       ]),
       el('span', { className: 'dev-section__cta-text', text: 'Submit Form' }),
     ]),
-    el('p', { className: 'dev-section__contact' }, [
-      'or contact us at developers@minigames.com',
-    ]),
+    el('p', { className: 'dev-section__contact' }, ['or contact us at developers@minigames.com']),
   ]);
 
   const section = el(

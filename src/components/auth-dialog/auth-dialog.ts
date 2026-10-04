@@ -1,3 +1,4 @@
+import { closeAuthModal } from '@/router';
 import type { AuthTab, InputState } from '@/types/auth';
 import { sessionStore, getInitials } from '@/state/session-store';
 import { el } from '@/utils/dom';
@@ -6,7 +7,11 @@ import { validateEmail, validateName, validatePassword } from '@/utils/validatio
 
 export interface AuthDialogApi {
   element: HTMLDialogElement;
+  /** Fills in the requested tab and shows the dialog. Does not touch the URL itself —
+   *  callers go through `openAuthModal` so the URL stays the single source of truth. */
   open: (tab: AuthTab) => void;
+  /** Closes the dialog without touching the URL — used when the URL already changed (popstate). */
+  close: () => void;
 }
 
 interface FieldRefs {
@@ -352,7 +357,7 @@ export function createAuthDialog(): AuthDialogApi {
     loginError.textContent = '';
     const fullName = loginEmail.refs.input.value.split('@')[0] || 'John Doe';
     sessionStore.logIn({ fullName, initials: getInitials(fullName) });
-    dialog.close();
+    closeAuthModal();
   });
 
   registerForm.addEventListener('submit', (event) => {
@@ -400,14 +405,19 @@ export function createAuthDialog(): AuthDialogApi {
     registerError.textContent = '';
     const fullName = registerUsername.refs.input.value;
     sessionStore.logIn({ fullName, initials: getInitials(fullName) });
-    dialog.close();
+    closeAuthModal();
   });
 
   // ----- Dialog dismissal -----------------------------------------------------
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) {
-      dialog.close();
+      closeAuthModal();
     }
+  });
+  // Escape fires `cancel` before `close` and does not touch the URL on its own.
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeAuthModal();
   });
   dialog.addEventListener('close', () => {
     document.body.classList.remove('no-scroll');
@@ -420,6 +430,11 @@ export function createAuthDialog(): AuthDialogApi {
       document.body.classList.add('no-scroll');
       if (!dialog.open) {
         dialog.showModal();
+      }
+    },
+    close: () => {
+      if (dialog.open) {
+        dialog.close();
       }
     },
   };
