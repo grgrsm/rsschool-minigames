@@ -18,6 +18,13 @@ export interface GameDetailsDialogApi {
   open: (game: GameDetails) => void;
   /** Replaces the dialog's content with an error banner + Retry, without closing it. */
   showError: (message: string, onRetry: () => void) => void;
+  /**
+   * The dedicated "Game Not Found" modal state (distinct from a retryable error):
+   * a 404 means the slug just doesn't exist, so there's nothing a Retry would fix.
+   * The dialog stays open — closing it (X, backdrop, Escape, Back) is what clears
+   * the bad slug from the URL, same as any other close.
+   */
+  showNotFound: () => void;
   /** Closes the dialog without touching the URL — used when the URL already changed (popstate). */
   close: () => void;
 }
@@ -333,6 +340,10 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
         dialog.showModal();
       }
       openGameModal(slug);
+    },
+    showNotFound: () => {
+      contentSlot.setAttribute('aria-busy', 'false');
+      contentSlot.replaceChildren(createEmptyState('Game Not Found'));
     },
     showError: (message: string, onRetry: () => void) => {
       contentSlot.setAttribute('aria-busy', 'false');
