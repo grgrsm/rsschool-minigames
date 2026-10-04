@@ -7,7 +7,6 @@ import type { GameItem } from '@/types/game';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
 import { getErrorMessage } from '@/components/feedback/error-banner';
-import { showSnackbar } from '@/components/feedback/snackbar';
 import { createFooter } from '@/components/footer/footer';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
@@ -118,15 +117,10 @@ function mountApp(): void {
         }
 
         if (error instanceof ApiError && error.isNotFound) {
-          // Unknown slug: drop the param rather than leave a broken modal open.
-          // There's no content area left to show an error banner in once the dialog
-          // closes, so this is exactly what the Snackbar is for.
-          currentGameSlug = null;
-          gameDetailsDialog.close();
-          const url = new URL(location.href);
-          url.searchParams.delete('game');
-          history.replaceState(history.state, '', `${url.pathname}${url.search}`);
-          showSnackbar("This game couldn't be found.", 'error');
+          // Dedicated "Game Not Found" modal state (per the Story 3 goal) — the
+          // dialog stays open; closing it (X, backdrop, Escape, Back) is what
+          // clears the bad slug from the URL, same as any other close.
+          gameDetailsDialog.showNotFound();
           return;
         }
 
