@@ -4,6 +4,7 @@ import type { GameCategory, GameItem } from '@/types/game';
 import { createEmptyState } from '@/components/feedback/empty-state';
 import { createErrorBanner, getErrorMessage } from '@/components/feedback/error-banner';
 import { createSkeleton } from '@/components/feedback/skeleton';
+import { showSnackbar } from '@/components/feedback/snackbar';
 import type { CategoryDto, GamesSort } from '@/types/api';
 import { DEFAULT_LIBRARY_STATE, readLibraryState, writeLibraryState } from '@/utils/library-query';
 import type { LibraryUrlState } from '@/utils/library-query';
@@ -569,12 +570,15 @@ export function createLibraryPage(
       const totalPages = Math.max(1, meta?.totalPages ?? 1);
 
       // The requested page is past the last real one for this filter — land
-      // back on page 1 instead of showing a spuriously "empty" result.
+      // back on page 1 instead of showing a spuriously "empty" result. This is
+      // a silent navigation correction, so it's exactly the non-blocking,
+      // API-driven "warning" event the Snackbar is for.
       if (
         data.length === 0 &&
         (meta?.total ?? 0) > 0 &&
         state.page !== DEFAULT_LIBRARY_STATE.page
       ) {
+        showSnackbar("That page doesn't exist — showing page 1 instead.", 'warning');
         goTo({ ...state, page: DEFAULT_LIBRARY_STATE.page }, { replace: true });
         return;
       }
