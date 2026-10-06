@@ -11,6 +11,9 @@
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,scss,html,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,scss,html,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "prepare": "husky"
   },
   "devDependencies": {
