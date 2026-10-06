@@ -3,4 +3,7 @@ dist
 .DS_Store
 *.local
 .vscode/*
+.env
+.env.*
+!.env.example
 !.vscode/extensions.json
