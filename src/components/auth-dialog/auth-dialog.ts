@@ -3,7 +3,14 @@ import type { AuthTab, InputState } from '@/types/auth';
 import { sessionStore, getInitials } from '@/state/session-store';
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
-import { validateEmail, validateName, validatePassword } from '@/utils/validation';
+import {
+  getConfirmPasswordError,
+  getEmailError,
+  getLoginPasswordError,
+  getRegisterPasswordError,
+  getUsernameError,
+} from '@/utils/validation';
+import type { ValidationError } from '@/utils/validation';
 
 export interface AuthDialogApi {
   element: HTMLDialogElement;
@@ -20,10 +27,71 @@ interface FieldRefs {
   error: HTMLParagraphElement;
 }
 
+interface FieldRule {
+  refs: FieldRefs;
+  getError: () => ValidationError;
+  touched: boolean;
+}
+
+interface FormValidator {
+  isValid: () => boolean;
+  reset: () => void;
+}
+
 function setFieldState(refs: FieldRefs, state: InputState, message: string | null): void {
   refs.wrap.classList.toggle('is-error', state === 'error');
   refs.wrap.classList.toggle('is-filled', state === 'filled');
   refs.error.textContent = message ?? '';
+}
+
+function createRule(refs: FieldRefs, getError: () => ValidationError): FieldRule {
+  return { refs, getError, touched: false };
+}
+
+function renderRule(rule: FieldRule): void {
+  if (!rule.touched) {
+    setFieldState(rule.refs, 'default', null);
+    return;
+  }
+  const error = rule.getError();
+  setFieldState(rule.refs, error === null ? 'filled' : 'error', error);
+}
+
+/**
+ * Validates on input/blur, shows errors only for fields the user has touched,
+ * and keeps the submit button disabled until every rule passes.
+ * Every touched field is re-rendered on any change, so "confirm password"
+ * is revalidated whenever the password changes.
+ */
+function createFormValidator(rules: FieldRule[], submitButton: HTMLButtonElement): FormValidator {
+  const isValid = (): boolean => rules.every((rule) => rule.getError() === null);
+
+  const refresh = (): void => {
+    rules.forEach((rule) => renderRule(rule));
+    submitButton.disabled = !isValid();
+  };
+
+  rules.forEach((rule) => {
+    const markTouched = (): void => {
+      rule.touched = true;
+      refresh();
+    };
+    rule.refs.input.addEventListener('input', markTouched);
+    rule.refs.input.addEventListener('blur', markTouched);
+  });
+
+  refresh();
+
+  return {
+    isValid,
+    reset: () => {
+      rules.forEach((rule) => {
+        rule.touched = false;
+        rule.refs.input.value = '';
+      });
+      refresh();
+    },
+  };
 }
 
 function createField(options: {
@@ -198,7 +266,7 @@ export function createAuthDialog(): AuthDialogApi {
     id: 'register-username',
     label: 'Username',
     type: 'text',
-    placeholder: 'e.g. CozyGamer_99',
+    placeholder: 'e.g. CozyGamer99',
     icon: icons.user,
   });
   const registerEmail = createField({
@@ -212,7 +280,7 @@ export function createAuthDialog(): AuthDialogApi {
     id: 'register-password',
     label: 'Password',
     type: 'password',
-    placeholder: 'Min. 8 characters',
+    placeholder: 'Min. 6 characters',
     icon: icons.lock,
     withToggle: true,
   });
@@ -278,6 +346,32 @@ export function createAuthDialog(): AuthDialogApi {
   dialog.append(card);
   document.body.append(dialog);
 
+  // ----- Validation ----------------------------------------------------------
+  const loginValidator = createFormValidator(
+    [
+      createRule(loginEmail.refs, () => getEmailError(loginEmail.refs.input.value)),
+      createRule(loginPassword.refs, () => getLoginPasswordError(loginPassword.refs.input.value)),
+    ],
+    loginSubmit,
+  );
+
+  const registerValidator = createFormValidator(
+    [
+      createRule(registerUsername.refs, () => getUsernameError(registerUsername.refs.input.value)),
+      createRule(registerEmail.refs, () => getEmailError(registerEmail.refs.input.value)),
+      createRule(registerPassword.refs, () =>
+        getRegisterPasswordError(registerPassword.refs.input.value),
+      ),
+      createRule(registerConfirmPassword.refs, () =>
+        getConfirmPasswordError(
+          registerConfirmPassword.refs.input.value,
+          registerPassword.refs.input.value,
+        ),
+      ),
+    ],
+    registerSubmit,
+  );
+
   // ----- Tab switching -----------------------------------------------------
   function activateTab(tab: AuthTab): void {
     const isLogin = tab === 'login';
@@ -287,6 +381,8 @@ export function createAuthDialog(): AuthDialogApi {
     tabRegister.setAttribute('aria-selected', String(!isLogin));
     loginPanel.hidden = !isLogin;
     registerPanel.hidden = isLogin;
+    loginValidator.reset();
+    registerValidator.reset();
     (isLogin ? loginEmail.refs.input : registerUsername.refs.input).focus();
   }
 
@@ -295,113 +391,24 @@ export function createAuthDialog(): AuthDialogApi {
   switchToRegister.addEventListener('click', () => activateTab('register'));
   switchToLogin.addEventListener('click', () => activateTab('login'));
 
-  // ----- Live validation -----------------------------------------------------
-  loginEmail.refs.input.addEventListener('input', () => {
-    const result = validateEmail(loginEmail.refs.input.value);
-    setFieldState(loginEmail.refs, result.state, result.message);
-  });
-  loginPassword.refs.input.addEventListener('input', () => {
-    const result = validatePassword(loginPassword.refs.input.value);
-    setFieldState(loginPassword.refs, result.state, result.message);
-  });
-  registerUsername.refs.input.addEventListener('input', () => {
-    const result = validateName(registerUsername.refs.input.value);
-    setFieldState(registerUsername.refs, result.state, result.message);
-  });
-  registerEmail.refs.input.addEventListener('input', () => {
-    const result = validateEmail(registerEmail.refs.input.value);
-    setFieldState(registerEmail.refs, result.state, result.message);
-  });
-  registerPassword.refs.input.addEventListener('input', () => {
-    const result = validatePassword(registerPassword.refs.input.value);
-    setFieldState(registerPassword.refs, result.state, result.message);
-  });
-  registerConfirmPassword.refs.input.addEventListener('input', () => {
-    const matches = registerConfirmPassword.refs.input.value === registerPassword.refs.input.value;
-    if (registerConfirmPassword.refs.input.value.length === 0) {
-      setFieldState(registerConfirmPassword.refs, 'default', null);
-    } else if (!matches) {
-      setFieldState(registerConfirmPassword.refs, 'error', 'Passwords do not match.');
-    } else {
-      setFieldState(registerConfirmPassword.refs, 'filled', null);
-    }
-  });
-
   // ----- Submit handlers -----------------------------------------------------
+  // Temporary local login — replaced by the Firebase flow in a later branch.
   loginForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const emailResult = validateEmail(loginEmail.refs.input.value);
-    const passwordResult = validatePassword(loginPassword.refs.input.value);
-    setFieldState(
-      loginEmail.refs,
-      loginEmail.refs.input.value ? emailResult.state : 'error',
-      loginEmail.refs.input.value ? emailResult.message : 'Email is required.',
-    );
-    setFieldState(
-      loginPassword.refs,
-      loginPassword.refs.input.value ? passwordResult.state : 'error',
-      loginPassword.refs.input.value ? passwordResult.message : 'Password is required.',
-    );
-
-    const hasError =
-      emailResult.state === 'error' ||
-      passwordResult.state === 'error' ||
-      !loginEmail.refs.input.value ||
-      !loginPassword.refs.input.value;
-
-    if (hasError) {
-      loginError.textContent = 'Please fix the fields above and try again.';
+    if (!loginValidator.isValid()) {
       return;
     }
-
     loginError.textContent = '';
-    const fullName = loginEmail.refs.input.value.split('@')[0] || 'John Doe';
+    const fullName = loginEmail.refs.input.value.trim().split('@')[0] || 'John Doe';
     sessionStore.logIn({ fullName, initials: getInitials(fullName) });
     closeAuthModal();
   });
 
   registerForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const nameResult = validateName(registerUsername.refs.input.value);
-    const emailResult = validateEmail(registerEmail.refs.input.value);
-    const passwordResult = validatePassword(registerPassword.refs.input.value);
-    const confirmMatches =
-      registerConfirmPassword.refs.input.value === registerPassword.refs.input.value &&
-      registerConfirmPassword.refs.input.value.length > 0;
-
-    setFieldState(
-      registerUsername.refs,
-      registerUsername.refs.input.value ? nameResult.state : 'error',
-      registerUsername.refs.input.value ? nameResult.message : 'Username is required.',
-    );
-    setFieldState(
-      registerEmail.refs,
-      registerEmail.refs.input.value ? emailResult.state : 'error',
-      registerEmail.refs.input.value ? emailResult.message : 'Email is required.',
-    );
-    setFieldState(
-      registerPassword.refs,
-      registerPassword.refs.input.value ? passwordResult.state : 'error',
-      registerPassword.refs.input.value ? passwordResult.message : 'Password is required.',
-    );
-    if (!confirmMatches) {
-      setFieldState(registerConfirmPassword.refs, 'error', 'Passwords do not match.');
-    }
-
-    const hasError =
-      nameResult.state === 'error' ||
-      emailResult.state === 'error' ||
-      passwordResult.state === 'error' ||
-      !confirmMatches ||
-      !registerUsername.refs.input.value ||
-      !registerEmail.refs.input.value ||
-      !registerPassword.refs.input.value;
-
-    if (hasError) {
-      registerError.textContent = 'Please fix the fields above and try again.';
+    if (!registerValidator.isValid()) {
       return;
     }
-
     registerError.textContent = '';
     const fullName = registerUsername.refs.input.value;
     sessionStore.logIn({ fullName, initials: getInitials(fullName) });
