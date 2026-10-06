@@ -10,6 +10,7 @@ import { getErrorMessage } from '@/components/feedback/error-banner';
 import { createFooter } from '@/components/footer/footer';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
+import '@/firebase/firebase';
 import { createHomeMain } from '@/pages/home/home';
 import { createLibraryPage } from '@/pages/library/library';
 import { createNotFoundPage } from '@/pages/not-found/not-found';
