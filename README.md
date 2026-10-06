@@ -65,3 +65,11 @@ src/
 - There's no real backend: a successful Login/Register just switches the header
   into the Authenticated state (uses the typed-in email/username as the display
   name), and Log Out returns to Guest.
+### Firebase
+- Create a Firebase project and register a web app in the Firebase Console.
+- In Authentication → Sign-in method, enable **Email/Password** and **Google**.
+- Copy `.env.example` to `.env.local` and fill in the `VITE_FIREBASE_*` values from
+- Project settings → Your apps.
+- For Google sign-in on the deployed site, add its domain to
+- Authentication → Settings → Authorized domains.
+- Run `npm run dev`.
