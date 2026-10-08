@@ -5,8 +5,14 @@ export type AuthTab = 'login' | 'register';
 export interface AuthUser {
   fullName: string;
   initials: string;
+  email: string;
+  avatarUrl?: string;
 }
 
+/**
+ * Minimum profile data kept in the client-side app session.
+ * Never contains passwords, Firebase tokens or other credentials.
+ */
 export interface AppSession {
   displayName: string;
   email: string;

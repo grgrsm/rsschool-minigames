@@ -1,5 +1,5 @@
 import type { SessionState } from '@/types/auth';
-import { sessionStore } from '@/state/session-store';
+import { sessionStore } from '@/state/session';
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
 import { getPublicUrl } from '@/utils/public-url';

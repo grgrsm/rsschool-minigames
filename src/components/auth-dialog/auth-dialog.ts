@@ -1,6 +1,6 @@
 import { closeAuthModal } from '@/router';
 import type { AuthTab, InputState } from '@/types/auth';
-import { sessionStore, getInitials } from '@/state/session-store';
+import { sessionStore } from '@/state/session';
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
 import {
@@ -399,8 +399,8 @@ export function createAuthDialog(): AuthDialogApi {
       return;
     }
     loginError.textContent = '';
-    const fullName = loginEmail.refs.input.value.trim().split('@')[0] || 'John Doe';
-    sessionStore.logIn({ fullName, initials: getInitials(fullName) });
+    const email = loginEmail.refs.input.value.trim();
+    sessionStore.logIn({ displayName: email.split('@')[0] || 'John Doe', email });
     closeAuthModal();
   });
 
@@ -410,8 +410,10 @@ export function createAuthDialog(): AuthDialogApi {
       return;
     }
     registerError.textContent = '';
-    const fullName = registerUsername.refs.input.value;
-    sessionStore.logIn({ fullName, initials: getInitials(fullName) });
+    sessionStore.logIn({
+      displayName: registerUsername.refs.input.value,
+      email: registerEmail.refs.input.value.trim(),
+    });
     closeAuthModal();
   });
 

@@ -1,5 +1,5 @@
 import type { SessionState, AuthTab } from '@/types/auth';
-import { sessionStore } from '@/state/session-store';
+import { sessionStore } from '@/state/session';
 import { el } from '@/utils/dom';
 import { getPublicUrl } from '@/utils/public-url';
 import { routeHref } from '@/router';
