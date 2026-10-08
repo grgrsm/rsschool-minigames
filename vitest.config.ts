@@ -19,6 +19,11 @@ export default mergeConfig(
           'src/**/*.test.ts',
           // Ambient type declarations: no runtime code.
           'src/**/*.d.ts',
+          // Type-only modules: interfaces and type aliases that are erased at compile time,
+          // so they have no runtime code and can never be loaded by a test.
+          'src/types/auth.ts',
+          'src/types/game.ts',
+          'src/types/leaderboard.ts',
           // Firebase SDK bootstrap: only reads env variables and initializes the SDK,
           // it contains no application logic.
           'src/firebase/firebase.ts',
