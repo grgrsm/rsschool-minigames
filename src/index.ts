@@ -25,7 +25,8 @@ import {
   updateActiveNavLinks,
 } from '@/router';
 import type { RouteLocation } from '@/router';
-import { sessionStore } from '@/state/session-store';
+import { sessionStore } from '@/state/session';
+import { watchPageActivity } from '@/state/session-checks';
 
 function getAppRoot(): HTMLElement {
   const root = document.getElementById('app');
@@ -37,6 +38,12 @@ function getAppRoot(): HTMLElement {
 
 function mountApp(): void {
   const root = getAppRoot();
+
+  // Restore (or drop) the stored app session before anything renders, so the very first
+  // paint already shows the right Guest/Authenticated state. Re-check whenever the page
+  // becomes active again — a session can end while the tab was in the background.
+  sessionStore.restore();
+  watchPageActivity(() => sessionStore.validate(), document, window);
 
   const authDialog = createAuthDialog();
   const gameDetailsDialog = createGameDetailsDialog();
@@ -140,6 +147,10 @@ function mountApp(): void {
   }
 
   function renderRoute({ route, params }: RouteLocation): void {
+    // Every page and dialog navigation passes through here: an expired session
+    // switches to Guest Mode first, and the requested public navigation continues.
+    sessionStore.validate();
+
     cleanupCurrentRoute?.();
     cleanupCurrentRoute = null;
 
