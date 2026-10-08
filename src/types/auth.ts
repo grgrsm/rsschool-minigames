@@ -7,6 +7,15 @@ export interface AuthUser {
   initials: string;
 }
 
+export interface AppSession {
+  displayName: string;
+  email: string;
+  /** `Date.now()` at successful authentication. Fixed: reloads and activity never extend it. */
+  authenticatedAt: number;
+  /** Only present when the identity provider supplies one (e.g. Google). */
+  avatarUrl?: string;
+}
+
 export type SessionState = { status: 'guest' } | { status: 'authenticated'; user: AuthUser };
 
 /** Visual state of a single text input, driven by validation. */
