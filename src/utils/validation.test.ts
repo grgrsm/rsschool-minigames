@@ -36,9 +36,15 @@ describe('getUsernameError', () => {
   });
 
   it('must start with an uppercase English letter', () => {
-    expect(getUsernameError('alex1')).toBe('Username must start with an uppercase English letter.');
-    expect(getUsernameError('1Alex')).toBe('Username must start with an uppercase English letter.');
-    expect(getUsernameError('Алекс')).toBe('Username must start with an uppercase English letter.');
+    expect(getUsernameError('alex1')).toBe(
+      'Username must start with an uppercase English letter (A–Z).',
+    );
+    expect(getUsernameError('1Alex')).toBe(
+      'Username must start with an uppercase English letter (A–Z).',
+    );
+    expect(getUsernameError('Алекс')).toBe(
+      'Username must start with an uppercase English letter (A–Z).',
+    );
   });
 
   it.each(['Alex_1', 'Alex 1', 'Alex-1', 'AЛекс', 'Alexé'])(

@@ -38,7 +38,7 @@ export function getUsernameError(value: string): ValidationError {
     return `Username must be ${MIN_USERNAME_LENGTH}–${MAX_USERNAME_LENGTH} characters long.`;
   }
   if (!USERNAME_START_PATTERN.test(value)) {
-    return 'Username must start with an uppercase English letter.';
+    return 'Username must start with an uppercase English letter (A–Z).';
   }
   if (!USERNAME_CHARS_PATTERN.test(value)) {
     return 'Username may contain only English letters and digits.';

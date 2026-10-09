@@ -76,8 +76,10 @@ function createFormValidator(rules: FieldRule[], submitButton: HTMLButtonElement
       rule.touched = true;
       refresh();
     };
+    // Only a change marks a field as touched. Merely focusing and leaving an untouched field
+    // (for example to press "Continue with Google") must not raise "required" errors.
     rule.refs.input.addEventListener('input', markTouched);
-    rule.refs.input.addEventListener('blur', markTouched);
+    rule.refs.input.addEventListener('change', markTouched);
   });
 
   refresh();
@@ -100,6 +102,7 @@ function createField(options: {
   type: 'text' | 'email' | 'password';
   placeholder: string;
   icon: string;
+  autocomplete: 'email' | 'nickname' | 'current-password' | 'new-password';
   withToggle?: boolean;
 }): { field: HTMLDivElement; refs: FieldRefs } {
   const input = el('input', {
@@ -108,7 +111,7 @@ function createField(options: {
       id: options.id,
       type: options.type,
       placeholder: options.placeholder,
-      autocomplete: options.type === 'password' ? 'current-password' : 'on',
+      autocomplete: options.autocomplete,
     },
   });
 
@@ -207,6 +210,7 @@ export function createAuthDialog(): AuthDialogApi {
   // ----- Login panel -----------------------------------------------------
   const loginEmail = createField({
     id: 'login-email',
+    autocomplete: 'email',
     label: 'Email Address',
     type: 'email',
     placeholder: 'e.g. alex@minigames.com',
@@ -214,6 +218,7 @@ export function createAuthDialog(): AuthDialogApi {
   });
   const loginPassword = createField({
     id: 'login-password',
+    autocomplete: 'current-password',
     label: 'Password',
     type: 'password',
     placeholder: '••••••••',
@@ -264,6 +269,7 @@ export function createAuthDialog(): AuthDialogApi {
   // ----- Register panel ----------------------------------------------------
   const registerUsername = createField({
     id: 'register-username',
+    autocomplete: 'nickname',
     label: 'Username',
     type: 'text',
     placeholder: 'e.g. CozyGamer99',
@@ -271,6 +277,7 @@ export function createAuthDialog(): AuthDialogApi {
   });
   const registerEmail = createField({
     id: 'register-email',
+    autocomplete: 'email',
     label: 'Email Address',
     type: 'email',
     placeholder: 'your.email@domain.com',
@@ -278,6 +285,7 @@ export function createAuthDialog(): AuthDialogApi {
   });
   const registerPassword = createField({
     id: 'register-password',
+    autocomplete: 'new-password',
     label: 'Password',
     type: 'password',
     placeholder: 'Min. 6 characters',
@@ -286,6 +294,7 @@ export function createAuthDialog(): AuthDialogApi {
   });
   const registerConfirmPassword = createField({
     id: 'register-confirm-password',
+    autocomplete: 'new-password',
     label: 'Confirm Password',
     type: 'password',
     placeholder: 'Repeat your password',
