@@ -1,6 +1,10 @@
+import { describeAuthError } from '@/auth/auth-errors';
+import { signInWithGoogle } from '@/auth/google-auth';
+import { showSnackbar } from '@/components/feedback/snackbar';
 import { closeAuthModal } from '@/router';
 import type { AuthTab, InputState } from '@/types/auth';
 import { sessionStore } from '@/state/session';
+import type { SessionProfile } from '@/state/session-store';
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
 import {
@@ -36,6 +40,8 @@ interface FieldRule {
 interface FormValidator {
   isValid: () => boolean;
   reset: () => void;
+  /** Re-renders every field and recomputes whether the submit button may be enabled. */
+  refresh: () => void;
 }
 
 function setFieldState(refs: FieldRefs, state: InputState, message: string | null): void {
@@ -93,6 +99,7 @@ function createFormValidator(rules: FieldRule[], submitButton: HTMLButtonElement
       });
       refresh();
     },
+    refresh,
   };
 }
 
@@ -172,7 +179,8 @@ function createGoogleButton(label: string): HTMLButtonElement {
         html: icons.google,
         attrs: { 'aria-hidden': true },
       }),
-      el('span', { text: label }),
+      el('span', { className: 'auth-google-btn__spinner', attrs: { 'aria-hidden': true } }),
+      el('span', { className: 'auth-google-btn__label', text: label }),
     ],
   );
 }
@@ -381,6 +389,77 @@ export function createAuthDialog(): AuthDialogApi {
     registerSubmit,
   );
 
+  // ----- Pending requests ----------------------------------------------------
+  // While an authentication request is in flight every control is locked (nothing can be
+  // edited, switched or submitted twice) and the dialog cannot be dismissed.
+  const lockableControls = Array.from(
+    dialog.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input'),
+  );
+  let pending = false;
+  dialog.setAttribute('aria-busy', 'false');
+
+  function setPending(next: boolean): void {
+    pending = next;
+    dialog.setAttribute('aria-busy', String(next));
+
+    for (const control of lockableControls) {
+      control.disabled = next;
+    }
+
+    if (!next) {
+      // Unlocking must not enable the submit button of a form that is still invalid.
+      loginValidator.refresh();
+      registerValidator.refresh();
+    }
+  }
+
+  async function signInWithGoogleFlow(button: HTMLButtonElement): Promise<void> {
+    if (pending) {
+      return;
+    }
+
+    const label = button.querySelector('.auth-google-btn__label');
+    const idleLabel = label?.textContent ?? '';
+
+    setPending(true);
+    button.classList.add('is-loading');
+    if (label) {
+      label.textContent = 'Connecting to Google…';
+    }
+
+    let profile: SessionProfile | null = null;
+    try {
+      profile = await signInWithGoogle();
+    } catch (error) {
+      const failure = describeAuthError(error);
+      if (!failure.cancelled) {
+        showSnackbar(failure.message, 'error');
+      }
+    } finally {
+      button.classList.remove('is-loading');
+      if (label) {
+        label.textContent = idleLabel;
+      }
+      setPending(false);
+    }
+
+    if (profile === null) {
+      // Failed or cancelled: the dialog stays open and the form keeps what the user typed.
+      button.focus();
+      return;
+    }
+
+    sessionStore.logIn(profile);
+    closeAuthModal();
+    showSnackbar(`Signed in as ${profile.displayName}.`, 'success');
+  }
+
+  for (const button of dialog.querySelectorAll<HTMLButtonElement>('.auth-google-btn')) {
+    button.addEventListener('click', () => {
+      void signInWithGoogleFlow(button);
+    });
+  }
+
   // ----- Tab switching -----------------------------------------------------
   function activateTab(tab: AuthTab): void {
     const isLogin = tab === 'login';
@@ -428,14 +507,16 @@ export function createAuthDialog(): AuthDialogApi {
 
   // ----- Dialog dismissal -----------------------------------------------------
   dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) {
+    if (event.target === dialog && !pending) {
       closeAuthModal();
     }
   });
   // Escape fires `cancel` before `close` and does not touch the URL on its own.
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
-    closeAuthModal();
+    if (!pending) {
+      closeAuthModal();
+    }
   });
   dialog.addEventListener('close', () => {
     document.body.classList.remove('no-scroll');

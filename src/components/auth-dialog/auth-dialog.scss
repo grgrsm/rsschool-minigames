@@ -274,11 +274,46 @@
   cursor: pointer;
   transition: background-color var(--transition-fast);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--color-surface);
   }
 
+  &:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+  }
+
+  // The clicked button stays fully visible and shows progress while the others dim.
+  &.is-loading {
+    opacity: 1;
+    cursor: progress;
+
+    .auth-google-btn__icon {
+      display: none;
+    }
+
+    .auth-google-btn__spinner {
+      display: block;
+    }
+  }
+
   @include focus-ring;
+}
+
+.auth-google-btn__spinner {
+  display: none;
+  width: var(--size-3);
+  height: var(--size-3);
+  border: var(--size-025) solid var(--color-outline-variant);
+  border-top-color: var(--color-on-primary);
+  border-radius: var(--corner-full);
+  animation: auth-spin var(--transition-spin) infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-google-btn__icon {
@@ -306,4 +341,21 @@
   cursor: pointer;
 
   @include focus-ring;
+}
+
+// ----- Locked while an authentication request is pending ------------------
+.auth-dialog[aria-busy='true'] {
+  cursor: progress;
+}
+
+.auth-field__input-wrap:has(.auth-field__input:disabled) {
+  opacity: var(--opacity-disabled);
+  background-color: var(--color-surface);
+}
+
+.auth-dialog__tab:disabled,
+.auth-link-btn:disabled,
+.auth-field__toggle:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
 }

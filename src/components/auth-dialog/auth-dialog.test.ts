@@ -3,13 +3,25 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import type { AuthDialogApi } from '@/components/auth-dialog/auth-dialog';
 
-const { closeAuthModalMock, logInMock } = vi.hoisted(() => ({
-  closeAuthModalMock: vi.fn<() => void>(),
-  logInMock: vi.fn<(profile: { displayName: string; email: string }) => void>(),
-}));
+interface TestProfile {
+  displayName: string;
+  email: string;
+  avatarUrl?: string;
+}
+
+const { closeAuthModalMock, logInMock, signInWithGoogleMock, showSnackbarMock } = vi.hoisted(
+  () => ({
+    closeAuthModalMock: vi.fn<() => void>(),
+    logInMock: vi.fn<(profile: TestProfile) => void>(),
+    signInWithGoogleMock: vi.fn<() => Promise<TestProfile>>(),
+    showSnackbarMock: vi.fn<(message: string, variant?: string) => void>(),
+  }),
+);
 
 vi.mock('@/router', () => ({ closeAuthModal: closeAuthModalMock }));
 vi.mock('@/state/session', () => ({ sessionStore: { logIn: logInMock } }));
+vi.mock('@/auth/google-auth', () => ({ signInWithGoogle: signInWithGoogleMock }));
+vi.mock('@/components/feedback/snackbar', () => ({ showSnackbar: showSnackbarMock }));
 
 function byId(id: string): HTMLInputElement {
   const element = document.getElementById(id);
@@ -77,6 +89,8 @@ beforeAll(() => {
 beforeEach(() => {
   closeAuthModalMock.mockClear();
   logInMock.mockClear();
+  signInWithGoogleMock.mockReset();
+  showSnackbarMock.mockClear();
   dialog = createAuthDialog();
 });
 
@@ -236,5 +250,188 @@ describe('auth dialog temporary sign-in', () => {
 
     expect(logInMock).not.toHaveBeenCalled();
     expect(closeAuthModalMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('auth dialog Google sign-in', () => {
+  const googleProfile = {
+    displayName: 'Alex Gamer',
+    email: 'alex@gmail.com',
+    avatarUrl: 'https://example.com/a.png',
+  };
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((onResolve, onReject) => {
+      resolve = onResolve;
+      reject = onReject;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function controls(): (HTMLButtonElement | HTMLInputElement)[] {
+    return Array.from(
+      dialog.element.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input'),
+    );
+  }
+
+  async function settled(): Promise<void> {
+    await vi.waitFor(() => {
+      expect(dialog.element.getAttribute('aria-busy')).toBe('false');
+    });
+  }
+
+  function pressBackdrop(): void {
+    dialog.element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
+  function pressEscape(): void {
+    dialog.element.dispatchEvent(new Event('cancel', { cancelable: true }));
+  }
+
+  it('is not busy until a request starts', () => {
+    dialog.open('login');
+    expect(dialog.element.getAttribute('aria-busy')).toBe('false');
+    expect(googleButton('auth-panel-login').disabled).toBe(false);
+  });
+
+  it('locks every control and shows progress while the request is pending', () => {
+    dialog.open('login');
+    const request = deferred<typeof googleProfile>();
+    signInWithGoogleMock.mockReturnValueOnce(request.promise);
+
+    googleButton('auth-panel-login').click();
+
+    expect(dialog.element.getAttribute('aria-busy')).toBe('true');
+    expect(controls().every((control) => control.disabled)).toBe(true);
+    const button = googleButton('auth-panel-login');
+    expect(button.classList.contains('is-loading')).toBe(true);
+    expect(button.querySelector('.auth-google-btn__label')?.textContent).toBe(
+      'Connecting to Google…',
+    );
+  });
+
+  it('ignores repeated clicks while a request is pending', () => {
+    dialog.open('login');
+    signInWithGoogleMock.mockReturnValueOnce(deferred<typeof googleProfile>().promise);
+
+    googleButton('auth-panel-login').click();
+    googleButton('auth-panel-login').click();
+    googleButton('auth-panel-register').click();
+
+    expect(signInWithGoogleMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('cannot be dismissed by the backdrop or Escape while the request is pending', async () => {
+    dialog.open('login');
+    const request = deferred<typeof googleProfile>();
+    signInWithGoogleMock.mockReturnValueOnce(request.promise);
+    googleButton('auth-panel-login').click();
+
+    pressBackdrop();
+    pressEscape();
+    expect(closeAuthModalMock).not.toHaveBeenCalled();
+
+    request.reject({ code: 'auth/popup-closed-by-user' });
+    await settled();
+
+    pressEscape();
+    expect(closeAuthModalMock).toHaveBeenCalledTimes(1);
+    pressBackdrop();
+    expect(closeAuthModalMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('starts the session, closes the dialog and confirms with a Snackbar on success', async () => {
+    dialog.open('register');
+    signInWithGoogleMock.mockResolvedValueOnce(googleProfile);
+
+    googleButton('auth-panel-register').click();
+    await settled();
+
+    expect(logInMock).toHaveBeenCalledWith(googleProfile);
+    expect(closeAuthModalMock).toHaveBeenCalledTimes(1);
+    expect(showSnackbarMock).toHaveBeenCalledWith('Signed in as Alex Gamer.', 'success');
+    expect(controls().some((control) => control.disabled && control.type !== 'submit')).toBe(false);
+  });
+
+  it('works from the login tab as well', async () => {
+    dialog.open('login');
+    signInWithGoogleMock.mockResolvedValueOnce(googleProfile);
+
+    googleButton('auth-panel-login').click();
+    await settled();
+
+    expect(logInMock).toHaveBeenCalledWith(googleProfile);
+  });
+
+  it('stays open, unlocks and stays quiet when the user cancels the Google popup', async () => {
+    dialog.open('register');
+    typeInto('register-username', 'Alex1');
+    signInWithGoogleMock.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' });
+
+    googleButton('auth-panel-register').click();
+    await settled();
+
+    expect(logInMock).not.toHaveBeenCalled();
+    expect(closeAuthModalMock).not.toHaveBeenCalled();
+    expect(showSnackbarMock).not.toHaveBeenCalled();
+    expect(byId('register-username').disabled).toBe(false);
+    expect(byId('register-username').value).toBe('Alex1');
+    const button = googleButton('auth-panel-register');
+    expect(button.classList.contains('is-loading')).toBe(false);
+    expect(button.querySelector('.auth-google-btn__label')?.textContent).toBe(
+      'Sign up with Google',
+    );
+  });
+
+  it('shows an error Snackbar and unlocks the dialog when sign-in fails', async () => {
+    dialog.open('login');
+    signInWithGoogleMock.mockRejectedValueOnce({ code: 'auth/popup-blocked' });
+
+    googleButton('auth-panel-login').click();
+    await settled();
+
+    expect(logInMock).not.toHaveBeenCalled();
+    expect(closeAuthModalMock).not.toHaveBeenCalled();
+    expect(showSnackbarMock).toHaveBeenCalledTimes(1);
+    expect(showSnackbarMock).toHaveBeenCalledWith(expect.stringContaining('popup'), 'error');
+    expect(googleButton('auth-panel-login').disabled).toBe(false);
+  });
+
+  it('can be retried after a failure', async () => {
+    dialog.open('login');
+    signInWithGoogleMock.mockRejectedValueOnce({ code: 'auth/network-request-failed' });
+    googleButton('auth-panel-login').click();
+    await settled();
+
+    signInWithGoogleMock.mockResolvedValueOnce(googleProfile);
+    googleButton('auth-panel-login').click();
+    await settled();
+
+    expect(signInWithGoogleMock).toHaveBeenCalledTimes(2);
+    expect(logInMock).toHaveBeenCalledWith(googleProfile);
+  });
+
+  it('keeps the submit button disabled for an invalid form after unlocking', async () => {
+    dialog.open('register');
+    typeInto('register-username', 'alex1');
+    signInWithGoogleMock.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' });
+
+    googleButton('auth-panel-register').click();
+    await settled();
+
+    expect(submitButton('auth-panel-register').disabled).toBe(true);
+  });
+
+  it('keeps the submit button enabled for a valid form after unlocking', async () => {
+    dialog.open('register');
+    fillValidRegistration();
+    signInWithGoogleMock.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' });
+
+    googleButton('auth-panel-register').click();
+    await settled();
+
+    expect(submitButton('auth-panel-register').disabled).toBe(false);
   });
 });
