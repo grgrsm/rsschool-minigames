@@ -1,14 +1,20 @@
 import { apiService, isAbortError } from '@/api/apiService';
+import { createCommentForm } from '@/components/game-details-dialog/comment-form';
+import { createCommentItem } from '@/components/game-details-dialog/comment-item';
+import { createFavoriteButton } from '@/components/game-details-dialog/favorite-button';
 import type { GameDetails, TopRecord } from '@/types/game';
 import { createEmptyState } from '@/components/feedback/empty-state';
 import { createErrorBanner, getErrorMessage } from '@/components/feedback/error-banner';
 import { createSkeleton } from '@/components/feedback/skeleton';
+import { showSnackbar } from '@/components/feedback/snackbar';
 import { closeGameModal, openGameModal } from '@/router';
-import type { CommentDto } from '@/types/api';
+import { requireAuthenticatedUser } from '@/state/protected-action';
+import { sessionStore } from '@/state/session';
+import type { AuthUser } from '@/types/auth';
+import { createAvatarPalette } from '@/utils/avatar';
 import { el, formatCount } from '@/utils/dom';
 import { icons } from '@/utils/icons';
 import { getPublicUrl } from '@/utils/public-url';
-import { formatTimeAgo } from '@/utils/timeAgo';
 
 export interface GameDetailsDialogApi {
   element: HTMLDialogElement;
@@ -27,15 +33,6 @@ export interface GameDetailsDialogApi {
   showNotFound: () => void;
   /** Closes the dialog without touching the URL — used when the URL already changed (popstate). */
   close: () => void;
-}
-
-interface SeedComment {
-  avatarIndex: 1 | 2 | 3;
-  initial: string;
-  name: string;
-  timeAgo: string;
-  text: string;
-  likes: number;
 }
 
 /** `GameDetails.genre` isn't typed as a fixed union (unlike the list endpoint's `category`),
@@ -66,39 +63,14 @@ function createRecordItem(record: TopRecord): HTMLElement {
   ]);
 }
 
-function toDisplayComment(dto: CommentDto, index: number): SeedComment {
-  return {
-    avatarIndex: ((index % 3) + 1) as 1 | 2 | 3,
-    initial: dto.authorName.charAt(0).toUpperCase() || '?',
-    name: dto.authorName,
-    timeAgo: formatTimeAgo(dto.createdAt),
-    text: dto.text,
-    likes: dto.likesCount,
-  };
+function getCurrentUser(): AuthUser | null {
+  const state = sessionStore.getState();
+  return state.status === 'authenticated' ? state.user : null;
 }
 
-function createCommentItem(comment: SeedComment): HTMLElement {
-  return el('li', { className: 'game-details__comment' }, [
-    el('div', { className: 'game-details__comment-head' }, [
-      el('span', { className: 'game-details__comment-author' }, [
-        el('span', {
-          className: `game-details__avatar game-details__avatar--${comment.avatarIndex}`,
-          text: comment.initial,
-        }),
-        el('span', { className: 'game-details__comment-name', text: comment.name }),
-      ]),
-      el('span', { className: 'game-details__comment-time', text: comment.timeAgo }),
-    ]),
-    el('p', { className: 'game-details__comment-text', text: comment.text }),
-    el('span', { className: 'game-details__comment-likes' }, [
-      el('span', {
-        className: 'game-details__comment-like-icon',
-        html: icons.heart,
-        attrs: { 'aria-hidden': true },
-      }),
-      el('span', { text: String(comment.likes) }),
-    ]),
-  ]);
+/** The signed-in user's email, or `undefined` for a guest (who must not send one). */
+function getUserEmail(): string | undefined {
+  return getCurrentUser()?.email;
 }
 
 export function createGameDetailsDialog(): GameDetailsDialogApi {
@@ -163,32 +135,16 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
     attrs: { type: 'button' },
     text: 'Play Now',
   });
-  const favoriteLabel = el('span', {
-    className: 'game-details__favorite-label',
-    text: 'Add to Favorites',
-  });
-  const favoriteBtn = el(
-    'button',
-    {
-      className: 'game-details__favorite',
-      attrs: { type: 'button', 'aria-pressed': false },
+  const favorite = createFavoriteButton({
+    requireUser: requireAuthenticatedUser,
+    toggleFavorite: (slug, email) => apiService.toggleFavorite(slug, email),
+    // The server's answer also carries the game's new total of favorites.
+    onToggled: (result) => {
+      likesValue.textContent = formatCount(result.likesCount);
     },
-    [
-      el('span', {
-        className: 'game-details__favorite-icon',
-        html: icons.heart,
-        attrs: { 'aria-hidden': true },
-      }),
-      favoriteLabel,
-    ],
-  );
-  favoriteBtn.addEventListener('click', () => {
-    const isActive = favoriteBtn.getAttribute('aria-pressed') === 'true';
-    favoriteBtn.setAttribute('aria-pressed', String(!isActive));
-    favoriteBtn.classList.toggle('is-active', !isActive);
-    favoriteLabel.textContent = isActive ? 'Add to Favorites' : 'Added to Favorites';
+    notify: showSnackbar,
   });
-  const actions = el('div', { className: 'game-details__actions' }, [playBtn, favoriteBtn]);
+  const actions = el('div', { className: 'game-details__actions' }, [playBtn, favorite.element]);
 
   // Populated per-game in `open()` from the API's own `topRecords` — not static mock data.
   const recordsList = el('ol', { className: 'game-details__records-list' });
@@ -204,20 +160,27 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
     ],
   );
 
-  const commentInput = el('input', {
-    className: 'game-details__comment-input',
-    attrs: { type: 'text', placeholder: 'Write a comment...', 'aria-label': 'Write a comment' },
+  let currentSlug: string | null = null;
+  /** Gives every commenter a random avatar color that stays the same while this game is shown. */
+  let avatarPalette = createAvatarPalette();
+
+  const commentForm = createCommentForm({
+    requireUser: requireAuthenticatedUser,
+    createComment: (slug, comment) => apiService.createComment(slug, comment),
+    // The server's list is the truth: reload it (and its total) instead of patching locally.
+    onPosted: () => {
+      if (currentSlug !== null) {
+        void loadComments(currentSlug);
+      }
+    },
+    notify: showSnackbar,
   });
-  const commentSubmit = el('button', {
-    className: 'game-details__comment-submit',
-    attrs: { type: 'submit', 'aria-label': 'Post comment' },
-    html: icons.send,
+  // Locks the form for a guest and unlocks it for a signed-in user — also while the dialog
+  // is open, e.g. when the session expires or the user logs in from the Auth dialog.
+  sessionStore.subscribe(() => {
+    commentForm.setUser(getCurrentUser());
   });
-  const commentForm = el('form', { className: 'game-details__comment-form' }, [
-    el('span', { className: 'game-details__avatar game-details__avatar--you', text: 'U' }),
-    commentInput,
-    commentSubmit,
-  ]);
+
   // Swapped between a skeleton, an error banner and the real `<ul>` of comments
   // as `loadComments` below goes through its lifecycle.
   const commentsSlot = el('div', { className: 'game-details__comments-slot' });
@@ -228,29 +191,8 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
   const comments = el(
     'section',
     { className: 'game-details__comments', attrs: { 'aria-label': 'Comments' } },
-    [commentsTitle, commentForm, commentsSlot],
+    [commentsTitle, commentForm.element, commentsSlot],
   );
-
-  // Read-only per Story 3 — posting isn't backed by an endpoint, this only
-  // prepends locally to whatever list is currently rendered (a no-op while
-  // the real comments are still loading or failed to load).
-  commentForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const text = commentInput.value.trim();
-    const list = commentsSlot.querySelector<HTMLUListElement>('.game-details__comments-list');
-    if (!text || !list) return;
-    const newComment = createCommentItem({
-      avatarIndex: 2,
-      initial: 'U',
-      name: 'You',
-      timeAgo: 'just now',
-      text,
-      likes: 0,
-    });
-    list.prepend(newComment);
-    commentInput.value = '';
-    commentsTitle.textContent = `Comments (${list.children.length})`;
-  });
 
   let commentsController: AbortController | null = null;
 
@@ -265,7 +207,7 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
     try {
       const { data, meta } = await apiService.getGameComments(
         slug,
-        { limit: 3, sort: 'newest' },
+        { limit: 3, sort: 'newest', userEmail: getUserEmail() },
         controller.signal,
       );
       commentsSlot.setAttribute('aria-busy', 'false');
@@ -278,7 +220,14 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
           : el(
               'ul',
               { className: 'game-details__comments-list' },
-              data.map((comment, index) => createCommentItem(toDisplayComment(comment, index))),
+              data.map((comment) =>
+                createCommentItem(comment, {
+                  palette: avatarPalette,
+                  requireUser: requireAuthenticatedUser,
+                  toggleLike: (commentId, email) => apiService.toggleCommentLike(commentId, email),
+                  notify: showSnackbar,
+                }),
+              ),
             ),
       );
     } catch (error) {
@@ -368,9 +317,13 @@ export function createGameDetailsDialog(): GameDetailsDialogApi {
       playersChip.value.textContent = game.players || '—';
       durationChip.value.textContent = game.duration || '—';
       priceChip.value.textContent = game.price || '—';
-      favoriteBtn.setAttribute('aria-pressed', 'false');
-      favoriteBtn.classList.remove('is-active');
-      favoriteLabel.textContent = 'Add to Favorites';
+      favorite.setGame(game.slug, game.isFavorited);
+      if (game.slug !== currentSlug) {
+        avatarPalette = createAvatarPalette();
+      }
+      currentSlug = game.slug;
+      commentForm.setGame(game.slug);
+      commentForm.setUser(getCurrentUser());
       recordsList.replaceChildren(...game.topRecords.map(createRecordItem));
 
       showLoadedContent();

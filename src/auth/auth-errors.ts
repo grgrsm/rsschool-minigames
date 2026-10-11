@@ -7,7 +7,7 @@ export interface AuthFailure {
   message: string;
 }
 
-const DEFAULT_MESSAGE = 'Google sign-in failed. Please try again.';
+const DEFAULT_MESSAGE = 'Authentication failed. Please try again.';
 
 const CANCELLED_CODES = new Set([
   'auth/popup-closed-by-user',
@@ -15,20 +15,29 @@ const CANCELLED_CODES = new Set([
   'auth/user-cancelled',
 ]);
 
+const INCORRECT_CREDENTIALS = 'Incorrect email or password.';
+
 const MESSAGES = new Map<string, string>([
+  ['auth/invalid-credential', INCORRECT_CREDENTIALS],
+  ['auth/wrong-password', INCORRECT_CREDENTIALS],
+  ['auth/user-not-found', INCORRECT_CREDENTIALS],
+  ['auth/invalid-email', 'Enter a valid email address.'],
+  ['auth/email-already-in-use', 'An account with this email already exists. Try logging in.'],
+  ['auth/weak-password', 'This password is too weak. Choose a stronger one.'],
+  ['auth/user-disabled', 'This account has been disabled.'],
   [
     'auth/popup-blocked',
     'The sign-in popup was blocked. Allow popups for this site and try again.',
   ],
   ['auth/network-request-failed', 'Network error. Check your connection and try again.'],
-  ['auth/unauthorized-domain', 'This website is not authorized for Google sign-in.'],
-  ['auth/operation-not-allowed', 'Google sign-in is not enabled for this project.'],
+  ['auth/unauthorized-domain', 'This website is not authorized for sign-in.'],
+  ['auth/operation-not-allowed', 'This sign-in method is not enabled for this project.'],
   ['auth/too-many-requests', 'Too many attempts. Please try again later.'],
   [
     'auth/account-exists-with-different-credential',
     'An account with this email already exists. Sign in with your original method.',
   ],
-  [MISSING_EMAIL_CODE, 'Your Google account did not provide an email address.'],
+  [MISSING_EMAIL_CODE, 'Your account did not provide an email address.'],
 ]);
 
 /** Creates an error carrying a machine-readable `code`, like Firebase errors do. */

@@ -1,12 +1,17 @@
 import type {
   ApiResponse,
   CategoriesApiResponse,
+  CommentDto,
+  CommentLikeResultDto,
   CommentsApiResponse,
   CommentsQuery,
+  CreatedCommentApiResponse,
+  FavoriteResultDto,
   GameDetailsDto,
   GamesApiResponse,
   GamesQuery,
   LeaderboardApiResponse,
+  NewCommentDto,
 } from '../types/api';
 
 const DEFAULT_API_URL = 'https://faxb76kxra.execute-api.eu-central-1.amazonaws.com/api';
@@ -14,8 +19,6 @@ const API_BASE_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_API_URL;
 const REQUEST_TIMEOUT_MS = 10_000;
 const ALL_CATEGORIES_SLUG = 'all';
-/** No auth in Story 3 — see the doc comment on `getGameBySlug`. */
-const CURRENT_USER_EMAIL = '';
 
 /* ---------------------------------- Errors ---------------------------------- */
 
@@ -30,6 +33,15 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.kind = kind;
     this.status = status;
+  }
+
+  /**
+   * The request may or may not have reached the server (lost connection, timeout, or a
+   * success response that could not be read). A mutation with this outcome must not be
+   * replayed automatically: for a toggle endpoint a second POST would undo the first.
+   */
+  public get isOutcomeUnknown(): boolean {
+    return this.kind === 'network' || this.kind === 'timeout' || this.kind === 'parse';
   }
 
   /** Network failures, timeouts and 5xx — the cases that get an Error Banner with Retry. */
@@ -70,7 +82,17 @@ function buildUrl(path: string, query?: QueryParams): string {
   return url.toString();
 }
 
-async function request<T>(path: string, query?: QueryParams, signal?: AbortSignal): Promise<T> {
+interface RequestInitOptions {
+  method: 'POST';
+  body: unknown;
+}
+
+async function request<T>(
+  path: string,
+  query?: QueryParams,
+  signal?: AbortSignal,
+  init?: RequestInitOptions,
+): Promise<T> {
   const controller = new AbortController();
   let timedOut = false;
 
@@ -93,7 +115,11 @@ async function request<T>(path: string, query?: QueryParams, signal?: AbortSigna
 
     try {
       response = await fetch(buildUrl(path, query), {
-        headers: { Accept: 'application/json' },
+        method: init?.method ?? 'GET',
+        headers: init
+          ? { Accept: 'application/json', 'Content-Type': 'application/json' }
+          : { Accept: 'application/json' },
+        body: init ? JSON.stringify(init.body) : undefined,
         signal: controller.signal,
       });
     } catch {
@@ -158,33 +184,64 @@ export const apiService = {
 
   /**
    * Game details modal. Wrapped in `{ data }` just like the collection endpoints —
-   * unwrapped here.
-   *
-   * `userEmail` is sent empty: there's no auth yet in Story 3 (it's Story 4 scope), but
-   * the spec names it as the endpoint's personalization param, so the key stays present
-   * on every request rather than being silently omitted. Once real auth lands, replace
-   * `CURRENT_USER_EMAIL` with the signed-in user's email and `isLikedByCurrentUser` on
-   * the response will start reflecting it.
+   * unwrapped here. Authenticated users pass their `userEmail`, which makes
+   * `isLikedByCurrentUser` reflect their favorite; guests omit it.
    */
-  async getGameBySlug(gameSlug: string, signal?: AbortSignal): Promise<GameDetailsDto> {
+  async getGameBySlug(
+    gameSlug: string,
+    { userEmail, signal }: { userEmail?: string; signal?: AbortSignal } = {},
+  ): Promise<GameDetailsDto> {
     const response = await request<ApiResponse<GameDetailsDto>>(
       `/games/${encodeURIComponent(gameSlug)}`,
-      { userEmail: CURRENT_USER_EMAIL },
+      { userEmail },
       signal,
     );
     return response.data;
   },
 
-  /** Read-only comments preview (latest 3 by default). `userEmail` — see `getGameBySlug`. */
+  /** Latest comments (3 by default). `userEmail` — see `getGameBySlug`. */
   getGameComments(
     gameSlug: string,
-    { limit = 3, sort = 'newest' }: CommentsQuery = {},
+    { limit = 3, sort = 'newest', userEmail }: CommentsQuery = {},
     signal?: AbortSignal,
   ): Promise<CommentsApiResponse> {
     return request<CommentsApiResponse>(
       `/games/${encodeURIComponent(gameSlug)}/comments`,
-      { limit, sort, userEmail: CURRENT_USER_EMAIL },
+      { limit, sort, userEmail },
       signal,
     );
+  },
+
+  /** Flips the favorite of a game for the user and returns the server's new state. */
+  async toggleFavorite(gameSlug: string, userEmail: string): Promise<FavoriteResultDto> {
+    const response = await request<ApiResponse<FavoriteResultDto>>(
+      `/games/${encodeURIComponent(gameSlug)}/favorite`,
+      undefined,
+      undefined,
+      { method: 'POST', body: { userEmail } },
+    );
+    return response.data;
+  },
+
+  /** Posts a comment and returns the created comment. */
+  async createComment(gameSlug: string, comment: NewCommentDto): Promise<CommentDto> {
+    const response = await request<CreatedCommentApiResponse>(
+      `/games/${encodeURIComponent(gameSlug)}/comments`,
+      undefined,
+      undefined,
+      { method: 'POST', body: comment },
+    );
+    return response.data;
+  },
+
+  /** Likes or unlikes a comment for the user and returns the server's new state. */
+  async toggleCommentLike(commentId: string, userEmail: string): Promise<CommentLikeResultDto> {
+    const response = await request<ApiResponse<CommentLikeResultDto>>(
+      `/comments/${encodeURIComponent(commentId)}/like`,
+      undefined,
+      undefined,
+      { method: 'POST', body: { userEmail } },
+    );
+    return response.data;
   },
 };

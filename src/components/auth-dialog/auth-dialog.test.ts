@@ -9,18 +9,30 @@ interface TestProfile {
   avatarUrl?: string;
 }
 
-const { closeAuthModalMock, logInMock, signInWithGoogleMock, showSnackbarMock } = vi.hoisted(
-  () => ({
-    closeAuthModalMock: vi.fn<() => void>(),
-    logInMock: vi.fn<(profile: TestProfile) => void>(),
-    signInWithGoogleMock: vi.fn<() => Promise<TestProfile>>(),
-    showSnackbarMock: vi.fn<(message: string, variant?: string) => void>(),
-  }),
-);
+const {
+  closeAuthModalMock,
+  logInMock,
+  signInWithGoogleMock,
+  signInWithEmailMock,
+  registerWithEmailMock,
+  showSnackbarMock,
+} = vi.hoisted(() => ({
+  closeAuthModalMock: vi.fn<() => void>(),
+  logInMock: vi.fn<(profile: TestProfile) => void>(),
+  signInWithGoogleMock: vi.fn<() => Promise<TestProfile>>(),
+  signInWithEmailMock: vi.fn<(email: string, password: string) => Promise<TestProfile>>(),
+  registerWithEmailMock:
+    vi.fn<(username: string, email: string, password: string) => Promise<TestProfile>>(),
+  showSnackbarMock: vi.fn<(message: string, variant?: string) => void>(),
+}));
 
 vi.mock('@/router', () => ({ closeAuthModal: closeAuthModalMock }));
 vi.mock('@/state/session', () => ({ sessionStore: { logIn: logInMock } }));
 vi.mock('@/auth/google-auth', () => ({ signInWithGoogle: signInWithGoogleMock }));
+vi.mock('@/auth/email-auth', () => ({
+  signInWithEmail: signInWithEmailMock,
+  registerWithEmail: registerWithEmailMock,
+}));
 vi.mock('@/components/feedback/snackbar', () => ({ showSnackbar: showSnackbarMock }));
 
 function byId(id: string): HTMLInputElement {
@@ -90,6 +102,8 @@ beforeEach(() => {
   closeAuthModalMock.mockClear();
   logInMock.mockClear();
   signInWithGoogleMock.mockReset();
+  signInWithEmailMock.mockReset();
+  registerWithEmailMock.mockReset();
   showSnackbarMock.mockClear();
   dialog = createAuthDialog();
 });
@@ -214,42 +228,153 @@ describe('auth dialog validation', () => {
   });
 });
 
-describe('auth dialog temporary sign-in', () => {
-  it('starts a session from the login email and closes the dialog', () => {
-    dialog.open('login');
-    typeInto('login-email', 'alex@minigames.com');
+describe('auth dialog email sign-in', () => {
+  const alex = { displayName: 'Alex', email: 'alex@minigames.com' };
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((onResolve, onReject) => {
+      resolve = onResolve;
+      reject = onReject;
+    });
+    return { promise, resolve, reject };
+  }
+
+  async function settled(): Promise<void> {
+    await vi.waitFor(() => {
+      expect(dialog.element.getAttribute('aria-busy')).toBe('false');
+    });
+  }
+
+  function fillLogin(): void {
+    typeInto('login-email', '  alex@minigames.com ');
     typeInto('login-password', 'abcdef');
+  }
+
+  it('logs in with the typed credentials and starts the session', async () => {
+    signInWithEmailMock.mockResolvedValueOnce(alex);
+    dialog.open('login');
+    fillLogin();
 
     submit('auth-panel-login');
+    await settled();
 
-    expect(logInMock).toHaveBeenCalledWith({
-      displayName: 'alex',
-      email: 'alex@minigames.com',
-    });
+    expect(signInWithEmailMock).toHaveBeenCalledWith('alex@minigames.com', 'abcdef');
+    expect(logInMock).toHaveBeenCalledWith(alex);
     expect(closeAuthModalMock).toHaveBeenCalledTimes(1);
+    expect(showSnackbarMock).toHaveBeenCalledWith('Welcome back, Alex!', 'success');
   });
 
-  it('starts a session from the registration username and email', () => {
+  it('registers with the username, email and password', async () => {
+    registerWithEmailMock.mockResolvedValueOnce({ ...alex, displayName: 'Alex1' });
     dialog.open('register');
     fillValidRegistration();
 
     submit('auth-panel-register');
+    await settled();
 
-    expect(logInMock).toHaveBeenCalledWith({
-      displayName: 'Alex1',
-      email: 'alex@minigames.com',
-    });
+    expect(registerWithEmailMock).toHaveBeenCalledWith('Alex1', 'alex@minigames.com', 'Abc12!');
+    expect(logInMock).toHaveBeenCalledWith({ ...alex, displayName: 'Alex1' });
     expect(closeAuthModalMock).toHaveBeenCalledTimes(1);
+    expect(showSnackbarMock).toHaveBeenCalledWith('Account created. Welcome, Alex1!', 'success');
   });
 
-  it('does not start a session from an invalid form', () => {
+  it('does not send an invalid form', () => {
     dialog.open('register');
     typeInto('register-username', 'alex1');
 
     submit('auth-panel-register');
 
+    expect(registerWithEmailMock).not.toHaveBeenCalled();
+    expect(logInMock).not.toHaveBeenCalled();
+  });
+
+  it('locks the dialog and shows progress on the pressed button while pending', () => {
+    signInWithEmailMock.mockReturnValueOnce(deferred<TestProfile>().promise);
+    dialog.open('login');
+    fillLogin();
+
+    submit('auth-panel-login');
+
+    const button = submitButton('auth-panel-login');
+    expect(button.textContent).toBe('Logging in…');
+    expect(button.classList.contains('is-loading')).toBe(true);
+    expect(dialog.element.getAttribute('aria-busy')).toBe('true');
+    expect(byId('login-email').disabled).toBe(true);
+    expect(byId('login-password').disabled).toBe(true);
+    expect(googleButton('auth-panel-login').disabled).toBe(true);
+  });
+
+  it('sends a repeated submit only once', () => {
+    signInWithEmailMock.mockReturnValueOnce(deferred<TestProfile>().promise);
+    dialog.open('login');
+    fillLogin();
+
+    submit('auth-panel-login');
+    submit('auth-panel-login');
+
+    expect(signInWithEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('cannot be dismissed while the request is pending', () => {
+    signInWithEmailMock.mockReturnValueOnce(deferred<TestProfile>().promise);
+    dialog.open('login');
+    fillLogin();
+    submit('auth-panel-login');
+
+    dialog.element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    dialog.element.dispatchEvent(new Event('cancel', { cancelable: true }));
+
+    expect(closeAuthModalMock).not.toHaveBeenCalled();
+  });
+
+  it('explains wrong credentials, keeps the form and unlocks it', async () => {
+    signInWithEmailMock.mockRejectedValueOnce({ code: 'auth/invalid-credential' });
+    dialog.open('login');
+    fillLogin();
+
+    submit('auth-panel-login');
+    await settled();
+
+    expect(showSnackbarMock).toHaveBeenCalledWith('Incorrect email or password.', 'error');
     expect(logInMock).not.toHaveBeenCalled();
     expect(closeAuthModalMock).not.toHaveBeenCalled();
+    expect(byId('login-email').value).toBe('alex@minigames.com');
+    expect(byId('login-password').disabled).toBe(false);
+    expect(submitButton('auth-panel-login').textContent).toBe('Login');
+    expect(submitButton('auth-panel-login').disabled).toBe(false);
+  });
+
+  it('explains an email that is already registered', async () => {
+    registerWithEmailMock.mockRejectedValueOnce({ code: 'auth/email-already-in-use' });
+    dialog.open('register');
+    fillValidRegistration();
+
+    submit('auth-panel-register');
+    await settled();
+
+    expect(showSnackbarMock).toHaveBeenCalledWith(
+      expect.stringContaining('already exists'),
+      'error',
+    );
+    expect(submitButton('auth-panel-register').textContent).toBe('Create Account');
+    expect(closeAuthModalMock).not.toHaveBeenCalled();
+  });
+
+  it('allows trying again after a failure', async () => {
+    signInWithEmailMock.mockRejectedValueOnce({ code: 'auth/network-request-failed' });
+    dialog.open('login');
+    fillLogin();
+    submit('auth-panel-login');
+    await settled();
+
+    signInWithEmailMock.mockResolvedValueOnce(alex);
+    submit('auth-panel-login');
+    await settled();
+
+    expect(signInWithEmailMock).toHaveBeenCalledTimes(2);
+    expect(logInMock).toHaveBeenCalledWith(alex);
   });
 });
 

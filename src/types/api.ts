@@ -38,6 +38,8 @@ export interface GamesQuery {
 export interface CommentsQuery {
   limit?: number;
   sort?: CommentsSort;
+  /** Authenticated users only — guests omit it. Makes `isLikedByCurrentUser` meaningful. */
+  userEmail?: string;
 }
 
 /* ----------------------------------- Entities ---------------------------------- */
@@ -139,3 +141,29 @@ export interface CommentsApiResponse {
   data: CommentDto[];
   meta: CommentsMeta;
 }
+
+/* ------------------------------ Authenticated mutations ------------------------------ */
+
+/** `POST /games/{gameSlug}/favorite` — one endpoint that flips the favorite on every call. */
+export interface FavoriteResultDto {
+  isFavorited: boolean;
+  likesCount: number;
+}
+
+/** `POST /comments/{commentId}/like` — likes or unlikes, flipping the state on every call. */
+export interface CommentLikeResultDto {
+  isLikedByCurrentUser: boolean;
+  likesCount: number;
+}
+
+/** Body of `POST /games/{gameSlug}/comments`. */
+export interface NewCommentDto {
+  userEmail: string;
+  /** The profile's display name, 2–30 characters. */
+  authorName: string;
+  /** 1–500 characters after trimming. */
+  text: string;
+}
+
+/** `POST /games/{gameSlug}/comments` answers `201` with the created comment (no `meta`). */
+export type CreatedCommentApiResponse = ApiResponse<CommentDto>;

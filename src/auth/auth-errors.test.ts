@@ -10,6 +10,13 @@ describe('describeAuthError', () => {
   );
 
   it.each([
+    ['auth/invalid-credential', 'Incorrect email or password'],
+    ['auth/wrong-password', 'Incorrect email or password'],
+    ['auth/user-not-found', 'Incorrect email or password'],
+    ['auth/invalid-email', 'valid email'],
+    ['auth/email-already-in-use', 'already exists'],
+    ['auth/weak-password', 'too weak'],
+    ['auth/user-disabled', 'disabled'],
     ['auth/popup-blocked', 'Allow popups'],
     ['auth/network-request-failed', 'Network error'],
     ['auth/unauthorized-domain', 'not authorized'],
@@ -26,7 +33,7 @@ describe('describeAuthError', () => {
   it('falls back to a generic message for an unknown code', () => {
     expect(describeAuthError({ code: 'auth/something-new' })).toEqual({
       cancelled: false,
-      message: 'Google sign-in failed. Please try again.',
+      message: 'Authentication failed. Please try again.',
     });
   });
 
@@ -35,7 +42,7 @@ describe('describeAuthError', () => {
     (error) => {
       expect(describeAuthError(error)).toEqual({
         cancelled: false,
-        message: 'Google sign-in failed. Please try again.',
+        message: 'Authentication failed. Please try again.',
       });
     },
   );

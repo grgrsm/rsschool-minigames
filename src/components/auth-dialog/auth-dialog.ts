@@ -1,4 +1,5 @@
 import { describeAuthError } from '@/auth/auth-errors';
+import { registerWithEmail, signInWithEmail } from '@/auth/email-auth';
 import { signInWithGoogle } from '@/auth/google-auth';
 import { showSnackbar } from '@/components/feedback/snackbar';
 import { closeAuthModal } from '@/router';
@@ -23,6 +24,15 @@ export interface AuthDialogApi {
   open: (tab: AuthTab) => void;
   /** Closes the dialog without touching the URL — used when the URL already changed (popstate). */
   close: () => void;
+}
+
+interface AuthRequestUi {
+  /** The control the user pressed; it shows the loading state. */
+  button: HTMLButtonElement;
+  /** Element whose text turns into `busyText` — the button itself when it has no inner label. */
+  label: HTMLElement;
+  busyText: string;
+  successMessage: (profile: SessionProfile) => string;
 }
 
 interface FieldRefs {
@@ -234,7 +244,6 @@ export function createAuthDialog(): AuthDialogApi {
     withToggle: true,
   });
 
-  const loginError = el('p', { className: 'auth-form__form-error', attrs: { role: 'alert' } });
   const loginSubmit = el('button', {
     className: 'auth-submit-btn',
     attrs: { type: 'submit' },
@@ -260,7 +269,6 @@ export function createAuthDialog(): AuthDialogApi {
       loginEmail.field,
       loginPassword.field,
       el('a', { className: 'auth-forgot-link', attrs: { href: '#' }, text: 'Forgot Password?' }),
-      loginError,
       loginSubmit,
       createDivider(),
       createGoogleButton('Continue with Google'),
@@ -310,7 +318,6 @@ export function createAuthDialog(): AuthDialogApi {
     withToggle: true,
   });
 
-  const registerError = el('p', { className: 'auth-form__form-error', attrs: { role: 'alert' } });
   const registerSubmit = el('button', {
     className: 'auth-submit-btn',
     attrs: { type: 'submit' },
@@ -337,7 +344,6 @@ export function createAuthDialog(): AuthDialogApi {
       registerEmail.field,
       registerPassword.field,
       registerConfirmPassword.field,
-      registerError,
       registerSubmit,
       createDivider(),
       createGoogleButton('Sign up with Google'),
@@ -413,50 +419,55 @@ export function createAuthDialog(): AuthDialogApi {
     }
   }
 
-  async function signInWithGoogleFlow(button: HTMLButtonElement): Promise<void> {
+  /** Runs one authentication request with the dialog locked and progress shown on `ui`. */
+  async function runAuthRequest(
+    request: () => Promise<SessionProfile>,
+    ui: AuthRequestUi,
+  ): Promise<void> {
     if (pending) {
       return;
     }
 
-    const label = button.querySelector('.auth-google-btn__label');
-    const idleLabel = label?.textContent ?? '';
+    const idleText = ui.label.textContent ?? '';
 
     setPending(true);
-    button.classList.add('is-loading');
-    if (label) {
-      label.textContent = 'Connecting to Google…';
-    }
+    ui.button.classList.add('is-loading');
+    ui.label.textContent = ui.busyText;
 
     let profile: SessionProfile | null = null;
     try {
-      profile = await signInWithGoogle();
+      profile = await request();
     } catch (error) {
       const failure = describeAuthError(error);
       if (!failure.cancelled) {
         showSnackbar(failure.message, 'error');
       }
     } finally {
-      button.classList.remove('is-loading');
-      if (label) {
-        label.textContent = idleLabel;
-      }
+      ui.button.classList.remove('is-loading');
+      ui.label.textContent = idleText;
       setPending(false);
     }
 
     if (profile === null) {
       // Failed or cancelled: the dialog stays open and the form keeps what the user typed.
-      button.focus();
+      ui.button.focus();
       return;
     }
 
     sessionStore.logIn(profile);
     closeAuthModal();
-    showSnackbar(`Signed in as ${profile.displayName}.`, 'success');
+    showSnackbar(ui.successMessage(profile), 'success');
   }
 
   for (const button of dialog.querySelectorAll<HTMLButtonElement>('.auth-google-btn')) {
+    const label = button.querySelector<HTMLElement>('.auth-google-btn__label') ?? button;
     button.addEventListener('click', () => {
-      void signInWithGoogleFlow(button);
+      void runAuthRequest(signInWithGoogle, {
+        button,
+        label,
+        busyText: 'Connecting to Google…',
+        successMessage: (profile) => `Signed in as ${profile.displayName}.`,
+      });
     });
   }
 
@@ -480,29 +491,37 @@ export function createAuthDialog(): AuthDialogApi {
   switchToLogin.addEventListener('click', () => activateTab('login'));
 
   // ----- Submit handlers -----------------------------------------------------
-  // Temporary local login — replaced by the Firebase flow in a later branch.
   loginForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    if (!loginValidator.isValid()) {
+    if (pending || !loginValidator.isValid()) {
       return;
     }
-    loginError.textContent = '';
+
     const email = loginEmail.refs.input.value.trim();
-    sessionStore.logIn({ displayName: email.split('@')[0] || 'John Doe', email });
-    closeAuthModal();
+    const password = loginPassword.refs.input.value;
+    void runAuthRequest(() => signInWithEmail(email, password), {
+      button: loginSubmit,
+      label: loginSubmit,
+      busyText: 'Logging in…',
+      successMessage: (profile) => `Welcome back, ${profile.displayName}!`,
+    });
   });
 
   registerForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    if (!registerValidator.isValid()) {
+    if (pending || !registerValidator.isValid()) {
       return;
     }
-    registerError.textContent = '';
-    sessionStore.logIn({
-      displayName: registerUsername.refs.input.value,
-      email: registerEmail.refs.input.value.trim(),
+
+    const username = registerUsername.refs.input.value;
+    const email = registerEmail.refs.input.value.trim();
+    const password = registerPassword.refs.input.value;
+    void runAuthRequest(() => registerWithEmail(username, email, password), {
+      button: registerSubmit,
+      label: registerSubmit,
+      busyText: 'Creating account…',
+      successMessage: (profile) => `Account created. Welcome, ${profile.displayName}!`,
     });
-    closeAuthModal();
   });
 
   // ----- Dialog dismissal -----------------------------------------------------

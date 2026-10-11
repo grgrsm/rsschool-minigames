@@ -124,13 +124,16 @@ export function navigate(to: string, options: NavigateOptions = {}): void {
     return;
   }
 
+  // The hash is not part of a route, but dropping it would lose the reader's place in the page.
+  const href = `${target}${url.hash}`;
+
   const pathChanged = url.pathname !== window.location.pathname;
   const state = options.state ?? null;
 
   if (options.replace) {
-    window.history.replaceState(state, '', target);
+    window.history.replaceState(state, '', href);
   } else {
-    window.history.pushState(state, '', target);
+    window.history.pushState(state, '', href);
   }
 
   emit();
@@ -158,7 +161,7 @@ export function updateSearchParams(
   const query = params.toString();
   const path = normalizePath(stripBase(window.location.pathname));
 
-  navigate(`${path}${query ? `?${query}` : ''}`, options);
+  navigate(`${path}${query ? `?${query}` : ''}${window.location.hash}`, options);
 }
 
 /* --------------------------------- Game modal URL -------------------------------- */
@@ -228,6 +231,14 @@ export function closeAuthModal(): void {
     return;
   }
 
+  clearAuthParam();
+}
+
+/**
+ * Removes only `auth` from the URL by rewriting the current history entry (no new entry), so
+ * the path, the other query params and the hash are kept and Back does not return to it.
+ */
+export function clearAuthParam(): void {
   updateSearchParams({ [AUTH_PARAM]: null }, { replace: true });
 }
 

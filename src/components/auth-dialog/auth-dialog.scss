@@ -210,16 +210,6 @@
   @include focus-ring;
 }
 
-.auth-form__form-error {
-  font-size: var(--font-label-medium);
-  color: var(--color-error);
-  text-align: center;
-
-  &:empty {
-    display: none;
-  }
-}
-
 .auth-submit-btn {
   @include button-primary;
 
@@ -231,6 +221,22 @@
   border: 2.5px solid var(--color-on-primary);
   border-radius: var(--corner-medium);
   box-shadow: 0 4px 0 var(--color-on-primary);
+
+  // Request pending: the pressed button stays fully visible and shows progress.
+  &.is-loading {
+    opacity: 1;
+    cursor: progress;
+
+    &::before {
+      content: '';
+      width: var(--size-2);
+      height: var(--size-2);
+      border: var(--size-025) solid var(--color-outline-variant);
+      border-top-color: var(--color-on-primary);
+      border-radius: var(--corner-full);
+      animation: auth-spin var(--transition-spin) infinite;
+    }
+  }
 
   &:active:not(:disabled) {
     transform: translateY(4px);
