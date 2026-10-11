@@ -246,12 +246,27 @@ $shadow-soft: 3px 3px 0 var(--color-on-primary);
   cursor: pointer;
   transition: background-color var(--transition-fast);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--color-surface);
   }
 
   &.is-active {
     color: var(--color-lite);
+  }
+
+  // A request is pending: the control is locked and shows progress instead of the heart.
+  &:disabled {
+    cursor: progress;
+  }
+
+  &.is-loading {
+    .game-details__favorite-icon {
+      display: none;
+    }
+
+    .game-details__favorite-spinner {
+      display: block;
+    }
   }
 
   @include small-mobile {
@@ -266,6 +281,22 @@ $shadow-soft: 3px 3px 0 var(--color-on-primary);
 
 .game-details__favorite-icon {
   display: inline-flex;
+}
+
+.game-details__favorite-spinner {
+  display: none;
+  width: var(--size-2);
+  height: var(--size-2);
+  border: var(--size-025) solid var(--color-outline-variant);
+  border-top-color: var(--color-on-primary);
+  border-radius: var(--corner-full);
+  animation: game-details-spin var(--transition-spin) infinite;
+}
+
+@keyframes game-details-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .game-details__favorite-label {
@@ -330,21 +361,55 @@ $shadow-soft: 3px 3px 0 var(--color-on-primary);
 
 .game-details__comment-form {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--size-2);
   margin-top: var(--size-2);
+
+  // Signed out: the box looks inactive but still reacts to a click by opening Auth.
+  &.is-locked .game-details__comment-input {
+    cursor: pointer;
+  }
+
+  // Request pending: the send button shows progress instead of its arrow.
+  &.is-pending {
+    .game-details__comment-input {
+      cursor: progress;
+    }
+
+    .game-details__comment-submit {
+      cursor: progress;
+
+      svg {
+        display: none;
+      }
+
+      &::before {
+        content: '';
+        width: var(--size-2);
+        height: var(--size-2);
+        border: var(--size-025) solid var(--color-bg-footer-lowest);
+        border-top-color: var(--color-white);
+        border-radius: var(--corner-full);
+        animation: game-details-spin var(--transition-spin) infinite;
+      }
+    }
+  }
 }
 
 .game-details__comment-input {
   flex: 1;
-  height: var(--size-6);
-  padding-inline: var(--size-2);
+  min-height: var(--size-6);
+  // Grows with the text (see `autosize`) up to this height, then scrolls inside.
+  max-height: calc(var(--size-6) * 3);
+  padding: var(--size-1) var(--size-2);
   font-family: var(--font-primary);
   font-size: var(--font-body-small);
+  line-height: inherit;
   color: var(--color-on-primary);
   background-color: var(--color-white);
   border: 1px solid var(--color-on-primary);
   border-radius: var(--corner-small);
+  resize: none;
 
   &::placeholder {
     color: var(--color-on-bg-low);
@@ -369,8 +434,13 @@ $shadow-soft: 3px 3px 0 var(--color-on-primary);
   cursor: pointer;
   transition: background-color var(--transition-fast);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--color-bg-footer-lowest);
+  }
+
+  &:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
   }
 
   @include focus-ring;
@@ -420,16 +490,25 @@ $shadow-soft: 3px 3px 0 var(--color-on-primary);
   border: 1px solid var(--color-on-primary);
   border-radius: 50%;
 
-  &--1 {
+  // One of the avatar tokens, picked at random per commenter (see `createAvatarPalette`).
+  &--color-1 {
     background-color: var(--color-avatar-1);
   }
 
-  &--2 {
-    background-color: var(--color-primary);
+  &--color-2 {
+    background-color: var(--color-avatar-2);
   }
 
-  &--3 {
+  &--color-3 {
     background-color: var(--color-avatar-3);
+  }
+
+  &--color-4 {
+    background-color: var(--color-avatar-4);
+  }
+
+  &--color-5 {
+    background-color: var(--color-avatar-5);
   }
 
   &--you {
@@ -458,13 +537,50 @@ $shadow-soft: 3px 3px 0 var(--color-on-primary);
   color: var(--color-on-primary);
 }
 
-.game-details__comment-likes {
+.game-details__comment-like {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: var(--size-05);
+  padding: 0;
+  font-family: var(--font-primary);
   font-size: var(--font-label-medium);
   font-weight: var(--font-weight-bold);
   color: var(--color-on-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &.is-liked .game-details__comment-like-icon {
+    color: var(--color-lite);
+  }
+
+  // A request is pending: the control is locked and shows progress instead of the heart.
+  &:disabled {
+    cursor: progress;
+  }
+
+  &.is-loading {
+    .game-details__comment-like-icon {
+      display: none;
+    }
+
+    .game-details__comment-like-spinner {
+      display: block;
+    }
+  }
+
+  @include focus-ring;
+}
+
+.game-details__comment-like-spinner {
+  display: none;
+  width: var(--size-2);
+  height: var(--size-2);
+  border: var(--size-025) solid var(--color-outline-variant);
+  border-top-color: var(--color-on-primary);
+  border-radius: var(--corner-full);
+  animation: game-details-spin var(--transition-spin) infinite;
 }
 
 .game-details__comment-like-icon {

@@ -143,4 +143,10 @@
   --container-gutter-small-mobile: 13px; // section-container gutter ≤480px
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
+  --transition-spin: 800ms linear;
+
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
+  --opacity-disabled: 0.6;
 }

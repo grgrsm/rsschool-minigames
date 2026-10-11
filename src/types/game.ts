@@ -37,6 +37,8 @@ export interface GameDetails {
   heroImage: string;
   rating: number;
   likesCount: number;
+  /** Whether the current (authenticated) user has favorited the game. */
+  isFavorited: boolean;
   fullDescription: string;
   genre: string;
   players: string;

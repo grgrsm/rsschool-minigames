@@ -44,8 +44,8 @@ function toTopRecord(dto: TopRecordDto): TopRecord {
 /**
  * `GET /games/{gameSlug}` is a genuinely different shape from the list endpoint
  * (see `GameDetailsDto`) — this flattens `specs` and resolves `heroImage`/`topRecords`
- * for the Game Details dialog. `isLikedByCurrentUser` is intentionally not mapped:
- * it's only meaningful once the (Story 4) `userEmail` query param is sent.
+ * for the Game Details dialog. `isLikedByCurrentUser` becomes `isFavorited`; it is only
+ * meaningful when the request carried the authenticated user's `userEmail`.
  */
 export function toGameDetails(dto: GameDetailsDto): GameDetails {
   return {
@@ -54,6 +54,7 @@ export function toGameDetails(dto: GameDetailsDto): GameDetails {
     heroImage: getPublicUrl(dto.heroImage),
     rating: dto.rating,
     likesCount: dto.likesCount,
+    isFavorited: dto.isLikedByCurrentUser === true,
     fullDescription: dto.fullDescription,
     genre: dto.specs.genre,
     players: dto.specs.players,

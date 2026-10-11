@@ -65,3 +65,29 @@ src/
 - There's no real backend: a successful Login/Register just switches the header
   into the Authenticated state (uses the typed-in email/username as the display
   name), and Log Out returns to Guest.
+### Firebase
+- Create a Firebase project and register a web app in the Firebase Console.
+- In Authentication → Sign-in method, enable **Email/Password** and **Google**.
+- Copy `.env.example` to `.env.local` and fill in the `VITE_FIREBASE_*` values from
+- Project settings → Your apps.
+- For Google sign-in on the deployed site, add its domain to
+- Authentication → Settings → Authorized domains.
+- Run `npm run dev`.
+## App session
+
+After a successful sign-in the app keeps a short client-side session in `localStorage`:
+
+- **Key:** `minigames:rsschool-minigames:app-session` (DevTools → Application → Local Storage).
+- **Value:** one JSON object `{ "displayName", "email", "authenticatedAt", "avatarUrl"? }`.
+  `authenticatedAt` is `Date.now()` at login; `avatarUrl` is stored only when the provider supplies one.
+  No passwords, Firebase tokens or other credentials are stored.
+- **Lifetime:** 5 minutes from `authenticatedAt`. The time is fixed: reloading or using the app never extends it.
+- **Checks:** on startup, when the tab becomes visible or the window regains focus, on every page or
+  dialog navigation, and automatically when the lifetime ends.
+- **Expiration:** the key is removed, Firebase `signOut` is called, the UI switches to Guest Mode and
+  one Snackbar is shown.
+- **Invalid data** (broken JSON, missing or wrong-typed fields): the key is removed, Firebase `signOut`
+  is called and the app starts in Guest Mode, without a Snackbar.
+
+To test expiration: log in, change `authenticatedAt` in DevTools to an older timestamp (for example
+`Date.now() - 360000`), then reload the page or navigate.

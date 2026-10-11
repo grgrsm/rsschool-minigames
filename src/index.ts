@@ -1,30 +1,32 @@
 import './styles/main.scss';
 
-import { ApiError, apiService, isAbortError } from '@/api/apiService';
+import { apiService } from '@/api/apiService';
 import { toGameDetails } from '@/api/mappers';
+import { createModalCoordinator } from '@/app/modal-coordinator';
 import type { AuthTab } from '@/types/auth';
 import type { GameItem } from '@/types/game';
 import { createAuthDialog } from '@/components/auth-dialog/auth-dialog';
 import { createBurgerMenu } from '@/components/burger-menu/burger-menu';
-import { getErrorMessage } from '@/components/feedback/error-banner';
+import { showSnackbar } from '@/components/feedback/snackbar';
 import { createFooter } from '@/components/footer/footer';
 import { createGameDetailsDialog } from '@/components/game-details-dialog/game-details-dialog';
 import { createHeader } from '@/components/header/header';
+import '@/firebase/firebase';
 import { createHomeMain } from '@/pages/home/home';
 import { createLibraryPage } from '@/pages/library/library';
 import { createNotFoundPage } from '@/pages/not-found/not-found';
 import {
-  getAuthTab,
-  getGameSlug,
+  clearAuthParam,
   getLocation,
   initRouter,
-  openAuthModal,
   openGameModal,
   subscribe,
   updateActiveNavLinks,
 } from '@/router';
 import type { RouteLocation } from '@/router';
-import { sessionStore } from '@/state/session-store';
+import { openAuthDialog } from '@/state/auth-entry';
+import { sessionStore } from '@/state/session';
+import { watchPageActivity } from '@/state/session-checks';
 
 function getAppRoot(): HTMLElement {
   const root = document.getElementById('app');
@@ -37,19 +39,25 @@ function getAppRoot(): HTMLElement {
 function mountApp(): void {
   const root = getAppRoot();
 
+  // Restore (or drop) the stored app session before anything renders, so the very first
+  // paint already shows the right Guest/Authenticated state. Re-check whenever the page
+  // becomes active again — a session can end while the tab was in the background.
+  sessionStore.restore();
+  watchPageActivity(() => sessionStore.validate(), document, window);
+
   const authDialog = createAuthDialog();
   const gameDetailsDialog = createGameDetailsDialog();
 
   // Same reasoning as `onDetails` below: go through the URL, not `authDialog.open()`
   // directly, so `?auth=login`/`?auth=register` stays the single source of truth.
   const burgerMenu = createBurgerMenu({
-    onLoginClick: () => openAuthModal('login'),
-    onSignUpClick: () => openAuthModal('register'),
+    onLoginClick: () => openAuthDialog('login'),
+    onSignUpClick: () => openAuthDialog('register'),
     onLogOutClick: () => sessionStore.logOut(),
   });
 
   const header = createHeader({
-    onAuthClick: (tab: AuthTab) => openAuthModal(tab),
+    onAuthClick: (tab: AuthTab) => openAuthDialog(tab),
     onLogOutClick: () => sessionStore.logOut(),
     onBurgerClick: () => burgerMenu.open(),
   });
@@ -58,87 +66,29 @@ function mountApp(): void {
   root.append(header, burgerMenu.element, main, createFooter());
 
   let cleanupCurrentRoute: (() => void) | null = null;
-  let currentGameSlug: string | null = null;
-  let gameModalController: AbortController | null = null;
-  let currentAuthTab: AuthTab | null = null;
 
-  /** Deep link / Back-Forward for `?auth=login|register`, independent from the active page. */
-  function syncAuthModal(params: URLSearchParams): void {
-    const tab = getAuthTab(params);
-
-    if (tab === currentAuthTab) {
-      return;
-    }
-    currentAuthTab = tab;
-
-    if (tab === null) {
-      authDialog.close();
-    } else {
-      authDialog.open(tab);
-    }
-  }
+  const modals = createModalCoordinator({
+    authDialog,
+    gameDialog: gameDetailsDialog,
+    fetchGame: async (slug, options) =>
+      toGameDetails(await apiService.getGameBySlug(slug, options)),
+    getSessionState: () => sessionStore.getState(),
+    isAuthenticated: () => sessionStore.validate(),
+    clearAuthParam,
+    notify: showSnackbar,
+  });
+  sessionStore.subscribe(() => modals.handleSessionChange());
 
   // Always go through the URL rather than calling `gameDetailsDialog.open()` directly:
-  // `openGameModal` is what actually shows the dialog (via `syncGameModal` below), and
+  // `openGameModal` is what actually shows the dialog (via `modals.sync` below), and
   // it's also what keeps Back/Forward and deep links consistent with an in-app click.
   const onDetails = (game: GameItem): void => openGameModal(game.slug);
 
-  /** Deep link / Back-Forward for `?game=<slug>`, independent from which page is under it. */
-  function syncGameModal(params: URLSearchParams): void {
-    const slug = getGameSlug(params);
-
-    if (slug === currentGameSlug) {
-      return;
-    }
-    currentGameSlug = slug;
-    gameModalController?.abort();
-
-    if (slug === null) {
-      gameDetailsDialog.close();
-      return;
-    }
-
-    const controller = new AbortController();
-    gameModalController = controller;
-
-    gameDetailsDialog.openLoading(slug);
-
-    apiService
-      .getGameBySlug(slug, controller.signal)
-      .then((dto) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        gameDetailsDialog.open(toGameDetails(dto));
-      })
-      .catch((error: unknown) => {
-        if (isAbortError(error)) {
-          return;
-        }
-
-        if (error instanceof ApiError && error.isNotFound) {
-          // Dedicated "Game Not Found" modal state (per the Story 3 goal) — the
-          // dialog stays open; closing it (X, backdrop, Escape, Back) is what
-          // clears the bad slug from the URL, same as any other close.
-          gameDetailsDialog.showNotFound();
-          return;
-        }
-
-        // Show the real cause (network/timeout/5xx, or an unexpected shape/parse error)
-        // instead of one generic sentence — it's the fastest way to tell those apart.
-        const message =
-          error instanceof ApiError
-            ? getErrorMessage(error)
-            : `Unexpected error: ${error instanceof Error ? error.message : String(error)}`;
-
-        gameDetailsDialog.showError(
-          message,
-          () => void syncGameModal(new URLSearchParams(location.search)),
-        );
-      });
-  }
-
   function renderRoute({ route, params }: RouteLocation): void {
+    // Every page and dialog navigation passes through here: an expired session
+    // switches to Guest Mode first, and the requested public navigation continues.
+    sessionStore.validate();
+
     cleanupCurrentRoute?.();
     cleanupCurrentRoute = null;
 
@@ -155,8 +105,7 @@ function mountApp(): void {
     }
 
     updateActiveNavLinks(route);
-    syncGameModal(params);
-    syncAuthModal(params);
+    modals.sync(params);
   }
 
   initRouter();

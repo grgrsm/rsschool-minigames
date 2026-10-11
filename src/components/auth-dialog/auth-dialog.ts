@@ -1,9 +1,21 @@
+import { describeAuthError } from '@/auth/auth-errors';
+import { registerWithEmail, signInWithEmail } from '@/auth/email-auth';
+import { signInWithGoogle } from '@/auth/google-auth';
+import { showSnackbar } from '@/components/feedback/snackbar';
 import { closeAuthModal } from '@/router';
 import type { AuthTab, InputState } from '@/types/auth';
-import { sessionStore, getInitials } from '@/state/session-store';
+import { sessionStore } from '@/state/session';
+import type { SessionProfile } from '@/state/session-store';
 import { el } from '@/utils/dom';
 import { icons } from '@/utils/icons';
-import { validateEmail, validateName, validatePassword } from '@/utils/validation';
+import {
+  getConfirmPasswordError,
+  getEmailError,
+  getLoginPasswordError,
+  getRegisterPasswordError,
+  getUsernameError,
+} from '@/utils/validation';
+import type { ValidationError } from '@/utils/validation';
 
 export interface AuthDialogApi {
   element: HTMLDialogElement;
@@ -14,10 +26,32 @@ export interface AuthDialogApi {
   close: () => void;
 }
 
+interface AuthRequestUi {
+  /** The control the user pressed; it shows the loading state. */
+  button: HTMLButtonElement;
+  /** Element whose text turns into `busyText` — the button itself when it has no inner label. */
+  label: HTMLElement;
+  busyText: string;
+  successMessage: (profile: SessionProfile) => string;
+}
+
 interface FieldRefs {
   wrap: HTMLDivElement;
   input: HTMLInputElement;
   error: HTMLParagraphElement;
+}
+
+interface FieldRule {
+  refs: FieldRefs;
+  getError: () => ValidationError;
+  touched: boolean;
+}
+
+interface FormValidator {
+  isValid: () => boolean;
+  reset: () => void;
+  /** Re-renders every field and recomputes whether the submit button may be enabled. */
+  refresh: () => void;
 }
 
 function setFieldState(refs: FieldRefs, state: InputState, message: string | null): void {
@@ -26,12 +60,66 @@ function setFieldState(refs: FieldRefs, state: InputState, message: string | nul
   refs.error.textContent = message ?? '';
 }
 
+function createRule(refs: FieldRefs, getError: () => ValidationError): FieldRule {
+  return { refs, getError, touched: false };
+}
+
+function renderRule(rule: FieldRule): void {
+  if (!rule.touched) {
+    setFieldState(rule.refs, 'default', null);
+    return;
+  }
+  const error = rule.getError();
+  setFieldState(rule.refs, error === null ? 'filled' : 'error', error);
+}
+
+/**
+ * Validates on input/blur, shows errors only for fields the user has touched,
+ * and keeps the submit button disabled until every rule passes.
+ * Every touched field is re-rendered on any change, so "confirm password"
+ * is revalidated whenever the password changes.
+ */
+function createFormValidator(rules: FieldRule[], submitButton: HTMLButtonElement): FormValidator {
+  const isValid = (): boolean => rules.every((rule) => rule.getError() === null);
+
+  const refresh = (): void => {
+    rules.forEach((rule) => renderRule(rule));
+    submitButton.disabled = !isValid();
+  };
+
+  rules.forEach((rule) => {
+    const markTouched = (): void => {
+      rule.touched = true;
+      refresh();
+    };
+    // Only a change marks a field as touched. Merely focusing and leaving an untouched field
+    // (for example to press "Continue with Google") must not raise "required" errors.
+    rule.refs.input.addEventListener('input', markTouched);
+    rule.refs.input.addEventListener('change', markTouched);
+  });
+
+  refresh();
+
+  return {
+    isValid,
+    reset: () => {
+      rules.forEach((rule) => {
+        rule.touched = false;
+        rule.refs.input.value = '';
+      });
+      refresh();
+    },
+    refresh,
+  };
+}
+
 function createField(options: {
   id: string;
   label: string;
   type: 'text' | 'email' | 'password';
   placeholder: string;
   icon: string;
+  autocomplete: 'email' | 'nickname' | 'current-password' | 'new-password';
   withToggle?: boolean;
 }): { field: HTMLDivElement; refs: FieldRefs } {
   const input = el('input', {
@@ -40,7 +128,7 @@ function createField(options: {
       id: options.id,
       type: options.type,
       placeholder: options.placeholder,
-      autocomplete: options.type === 'password' ? 'current-password' : 'on',
+      autocomplete: options.autocomplete,
     },
   });
 
@@ -101,7 +189,8 @@ function createGoogleButton(label: string): HTMLButtonElement {
         html: icons.google,
         attrs: { 'aria-hidden': true },
       }),
-      el('span', { text: label }),
+      el('span', { className: 'auth-google-btn__spinner', attrs: { 'aria-hidden': true } }),
+      el('span', { className: 'auth-google-btn__label', text: label }),
     ],
   );
 }
@@ -139,6 +228,7 @@ export function createAuthDialog(): AuthDialogApi {
   // ----- Login panel -----------------------------------------------------
   const loginEmail = createField({
     id: 'login-email',
+    autocomplete: 'email',
     label: 'Email Address',
     type: 'email',
     placeholder: 'e.g. alex@minigames.com',
@@ -146,6 +236,7 @@ export function createAuthDialog(): AuthDialogApi {
   });
   const loginPassword = createField({
     id: 'login-password',
+    autocomplete: 'current-password',
     label: 'Password',
     type: 'password',
     placeholder: '••••••••',
@@ -153,7 +244,6 @@ export function createAuthDialog(): AuthDialogApi {
     withToggle: true,
   });
 
-  const loginError = el('p', { className: 'auth-form__form-error', attrs: { role: 'alert' } });
   const loginSubmit = el('button', {
     className: 'auth-submit-btn',
     attrs: { type: 'submit' },
@@ -179,7 +269,6 @@ export function createAuthDialog(): AuthDialogApi {
       loginEmail.field,
       loginPassword.field,
       el('a', { className: 'auth-forgot-link', attrs: { href: '#' }, text: 'Forgot Password?' }),
-      loginError,
       loginSubmit,
       createDivider(),
       createGoogleButton('Continue with Google'),
@@ -196,13 +285,15 @@ export function createAuthDialog(): AuthDialogApi {
   // ----- Register panel ----------------------------------------------------
   const registerUsername = createField({
     id: 'register-username',
+    autocomplete: 'nickname',
     label: 'Username',
     type: 'text',
-    placeholder: 'e.g. CozyGamer_99',
+    placeholder: 'e.g. CozyGamer99',
     icon: icons.user,
   });
   const registerEmail = createField({
     id: 'register-email',
+    autocomplete: 'email',
     label: 'Email Address',
     type: 'email',
     placeholder: 'your.email@domain.com',
@@ -210,14 +301,16 @@ export function createAuthDialog(): AuthDialogApi {
   });
   const registerPassword = createField({
     id: 'register-password',
+    autocomplete: 'new-password',
     label: 'Password',
     type: 'password',
-    placeholder: 'Min. 8 characters',
+    placeholder: 'Min. 6 characters',
     icon: icons.lock,
     withToggle: true,
   });
   const registerConfirmPassword = createField({
     id: 'register-confirm-password',
+    autocomplete: 'new-password',
     label: 'Confirm Password',
     type: 'password',
     placeholder: 'Repeat your password',
@@ -225,7 +318,6 @@ export function createAuthDialog(): AuthDialogApi {
     withToggle: true,
   });
 
-  const registerError = el('p', { className: 'auth-form__form-error', attrs: { role: 'alert' } });
   const registerSubmit = el('button', {
     className: 'auth-submit-btn',
     attrs: { type: 'submit' },
@@ -252,7 +344,6 @@ export function createAuthDialog(): AuthDialogApi {
       registerEmail.field,
       registerPassword.field,
       registerConfirmPassword.field,
-      registerError,
       registerSubmit,
       createDivider(),
       createGoogleButton('Sign up with Google'),
@@ -278,6 +369,108 @@ export function createAuthDialog(): AuthDialogApi {
   dialog.append(card);
   document.body.append(dialog);
 
+  // ----- Validation ----------------------------------------------------------
+  const loginValidator = createFormValidator(
+    [
+      createRule(loginEmail.refs, () => getEmailError(loginEmail.refs.input.value)),
+      createRule(loginPassword.refs, () => getLoginPasswordError(loginPassword.refs.input.value)),
+    ],
+    loginSubmit,
+  );
+
+  const registerValidator = createFormValidator(
+    [
+      createRule(registerUsername.refs, () => getUsernameError(registerUsername.refs.input.value)),
+      createRule(registerEmail.refs, () => getEmailError(registerEmail.refs.input.value)),
+      createRule(registerPassword.refs, () =>
+        getRegisterPasswordError(registerPassword.refs.input.value),
+      ),
+      createRule(registerConfirmPassword.refs, () =>
+        getConfirmPasswordError(
+          registerConfirmPassword.refs.input.value,
+          registerPassword.refs.input.value,
+        ),
+      ),
+    ],
+    registerSubmit,
+  );
+
+  // ----- Pending requests ----------------------------------------------------
+  // While an authentication request is in flight every control is locked (nothing can be
+  // edited, switched or submitted twice) and the dialog cannot be dismissed.
+  const lockableControls = Array.from(
+    dialog.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button, input'),
+  );
+  let pending = false;
+  dialog.setAttribute('aria-busy', 'false');
+
+  function setPending(next: boolean): void {
+    pending = next;
+    dialog.setAttribute('aria-busy', String(next));
+
+    for (const control of lockableControls) {
+      control.disabled = next;
+    }
+
+    if (!next) {
+      // Unlocking must not enable the submit button of a form that is still invalid.
+      loginValidator.refresh();
+      registerValidator.refresh();
+    }
+  }
+
+  /** Runs one authentication request with the dialog locked and progress shown on `ui`. */
+  async function runAuthRequest(
+    request: () => Promise<SessionProfile>,
+    ui: AuthRequestUi,
+  ): Promise<void> {
+    if (pending) {
+      return;
+    }
+
+    const idleText = ui.label.textContent ?? '';
+
+    setPending(true);
+    ui.button.classList.add('is-loading');
+    ui.label.textContent = ui.busyText;
+
+    let profile: SessionProfile | null = null;
+    try {
+      profile = await request();
+    } catch (error) {
+      const failure = describeAuthError(error);
+      if (!failure.cancelled) {
+        showSnackbar(failure.message, 'error');
+      }
+    } finally {
+      ui.button.classList.remove('is-loading');
+      ui.label.textContent = idleText;
+      setPending(false);
+    }
+
+    if (profile === null) {
+      // Failed or cancelled: the dialog stays open and the form keeps what the user typed.
+      ui.button.focus();
+      return;
+    }
+
+    sessionStore.logIn(profile);
+    closeAuthModal();
+    showSnackbar(ui.successMessage(profile), 'success');
+  }
+
+  for (const button of dialog.querySelectorAll<HTMLButtonElement>('.auth-google-btn')) {
+    const label = button.querySelector<HTMLElement>('.auth-google-btn__label') ?? button;
+    button.addEventListener('click', () => {
+      void runAuthRequest(signInWithGoogle, {
+        button,
+        label,
+        busyText: 'Connecting to Google…',
+        successMessage: (profile) => `Signed in as ${profile.displayName}.`,
+      });
+    });
+  }
+
   // ----- Tab switching -----------------------------------------------------
   function activateTab(tab: AuthTab): void {
     const isLogin = tab === 'login';
@@ -287,6 +480,8 @@ export function createAuthDialog(): AuthDialogApi {
     tabRegister.setAttribute('aria-selected', String(!isLogin));
     loginPanel.hidden = !isLogin;
     registerPanel.hidden = isLogin;
+    loginValidator.reset();
+    registerValidator.reset();
     (isLogin ? loginEmail.refs.input : registerUsername.refs.input).focus();
   }
 
@@ -295,129 +490,52 @@ export function createAuthDialog(): AuthDialogApi {
   switchToRegister.addEventListener('click', () => activateTab('register'));
   switchToLogin.addEventListener('click', () => activateTab('login'));
 
-  // ----- Live validation -----------------------------------------------------
-  loginEmail.refs.input.addEventListener('input', () => {
-    const result = validateEmail(loginEmail.refs.input.value);
-    setFieldState(loginEmail.refs, result.state, result.message);
-  });
-  loginPassword.refs.input.addEventListener('input', () => {
-    const result = validatePassword(loginPassword.refs.input.value);
-    setFieldState(loginPassword.refs, result.state, result.message);
-  });
-  registerUsername.refs.input.addEventListener('input', () => {
-    const result = validateName(registerUsername.refs.input.value);
-    setFieldState(registerUsername.refs, result.state, result.message);
-  });
-  registerEmail.refs.input.addEventListener('input', () => {
-    const result = validateEmail(registerEmail.refs.input.value);
-    setFieldState(registerEmail.refs, result.state, result.message);
-  });
-  registerPassword.refs.input.addEventListener('input', () => {
-    const result = validatePassword(registerPassword.refs.input.value);
-    setFieldState(registerPassword.refs, result.state, result.message);
-  });
-  registerConfirmPassword.refs.input.addEventListener('input', () => {
-    const matches = registerConfirmPassword.refs.input.value === registerPassword.refs.input.value;
-    if (registerConfirmPassword.refs.input.value.length === 0) {
-      setFieldState(registerConfirmPassword.refs, 'default', null);
-    } else if (!matches) {
-      setFieldState(registerConfirmPassword.refs, 'error', 'Passwords do not match.');
-    } else {
-      setFieldState(registerConfirmPassword.refs, 'filled', null);
-    }
-  });
-
   // ----- Submit handlers -----------------------------------------------------
   loginForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const emailResult = validateEmail(loginEmail.refs.input.value);
-    const passwordResult = validatePassword(loginPassword.refs.input.value);
-    setFieldState(
-      loginEmail.refs,
-      loginEmail.refs.input.value ? emailResult.state : 'error',
-      loginEmail.refs.input.value ? emailResult.message : 'Email is required.',
-    );
-    setFieldState(
-      loginPassword.refs,
-      loginPassword.refs.input.value ? passwordResult.state : 'error',
-      loginPassword.refs.input.value ? passwordResult.message : 'Password is required.',
-    );
-
-    const hasError =
-      emailResult.state === 'error' ||
-      passwordResult.state === 'error' ||
-      !loginEmail.refs.input.value ||
-      !loginPassword.refs.input.value;
-
-    if (hasError) {
-      loginError.textContent = 'Please fix the fields above and try again.';
+    if (pending || !loginValidator.isValid()) {
       return;
     }
 
-    loginError.textContent = '';
-    const fullName = loginEmail.refs.input.value.split('@')[0] || 'John Doe';
-    sessionStore.logIn({ fullName, initials: getInitials(fullName) });
-    closeAuthModal();
+    const email = loginEmail.refs.input.value.trim();
+    const password = loginPassword.refs.input.value;
+    void runAuthRequest(() => signInWithEmail(email, password), {
+      button: loginSubmit,
+      label: loginSubmit,
+      busyText: 'Logging in…',
+      successMessage: (profile) => `Welcome back, ${profile.displayName}!`,
+    });
   });
 
   registerForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const nameResult = validateName(registerUsername.refs.input.value);
-    const emailResult = validateEmail(registerEmail.refs.input.value);
-    const passwordResult = validatePassword(registerPassword.refs.input.value);
-    const confirmMatches =
-      registerConfirmPassword.refs.input.value === registerPassword.refs.input.value &&
-      registerConfirmPassword.refs.input.value.length > 0;
-
-    setFieldState(
-      registerUsername.refs,
-      registerUsername.refs.input.value ? nameResult.state : 'error',
-      registerUsername.refs.input.value ? nameResult.message : 'Username is required.',
-    );
-    setFieldState(
-      registerEmail.refs,
-      registerEmail.refs.input.value ? emailResult.state : 'error',
-      registerEmail.refs.input.value ? emailResult.message : 'Email is required.',
-    );
-    setFieldState(
-      registerPassword.refs,
-      registerPassword.refs.input.value ? passwordResult.state : 'error',
-      registerPassword.refs.input.value ? passwordResult.message : 'Password is required.',
-    );
-    if (!confirmMatches) {
-      setFieldState(registerConfirmPassword.refs, 'error', 'Passwords do not match.');
-    }
-
-    const hasError =
-      nameResult.state === 'error' ||
-      emailResult.state === 'error' ||
-      passwordResult.state === 'error' ||
-      !confirmMatches ||
-      !registerUsername.refs.input.value ||
-      !registerEmail.refs.input.value ||
-      !registerPassword.refs.input.value;
-
-    if (hasError) {
-      registerError.textContent = 'Please fix the fields above and try again.';
+    if (pending || !registerValidator.isValid()) {
       return;
     }
 
-    registerError.textContent = '';
-    const fullName = registerUsername.refs.input.value;
-    sessionStore.logIn({ fullName, initials: getInitials(fullName) });
-    closeAuthModal();
+    const username = registerUsername.refs.input.value;
+    const email = registerEmail.refs.input.value.trim();
+    const password = registerPassword.refs.input.value;
+    void runAuthRequest(() => registerWithEmail(username, email, password), {
+      button: registerSubmit,
+      label: registerSubmit,
+      busyText: 'Creating account…',
+      successMessage: (profile) => `Account created. Welcome, ${profile.displayName}!`,
+    });
   });
 
   // ----- Dialog dismissal -----------------------------------------------------
   dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) {
+    if (event.target === dialog && !pending) {
       closeAuthModal();
     }
   });
   // Escape fires `cancel` before `close` and does not touch the URL on its own.
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
-    closeAuthModal();
+    if (!pending) {
+      closeAuthModal();
+    }
   });
   dialog.addEventListener('close', () => {
     document.body.classList.remove('no-scroll');
